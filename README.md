@@ -19,6 +19,14 @@ The script [y] ...
 ## Network details
 The model provided in this repository...
 
+A recurrent sequence-to-sequence encoder-decoder model with attention is implemented.
+
+The encoder-decoder model architecture is organised as follows:
+
+1. Encoder: BiLSTM
+2. Aggregate function: Attention mechanism
+3. Decoder: LSTM
+
 ## Metrics and evaluation
 The model is trained using the Mean Absolute Error (MAE) loss and evaluated using the mean geodesic distance between predicted and target sequences (MAE<sub>gc</sub>).
 
