@@ -17,4 +17,4 @@ The model provided in this repository...
 ## Metrics and evaluation
 
 ## License
-The license is available in the LICENSE file in this repository.
+The license is available in the [LICENSE file](LICENSE) in this repository.
