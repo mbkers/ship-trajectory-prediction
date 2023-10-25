@@ -3,13 +3,12 @@ This repository contains MATLAB files related to ship trajectory prediction usin
 
 What the project does
 Why the project is useful
+
+## Getting started
+### Requirements
+
 How users can get started with the project
-Where users can get help with your project
-Who maintains and contributes to the project
 
-## Requirements
-
-## Get started
 Download or clone this repository to your machine and open it in MATLAB.
 
 **File description:**
@@ -27,3 +26,6 @@ Plots: MAEgc for 0.5, 1, 1.5, 2 and 2.5 hrs.
 
 ## License
 The license is available in the [LICENSE file](LICENSE) in this repository.
+
+Where users can get help with your project
+Who maintains and contributes to the project
