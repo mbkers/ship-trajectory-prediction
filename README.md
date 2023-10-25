@@ -49,6 +49,10 @@ The script [x] performs data preprocessing.
 
 The script [y] ...
 
+The script [z] is an early model that is defined as a `dlnetwork` object as opposed to the model in script [y] which is defined as a Model Function.
+
+For more details on their difference see [here](https://uk.mathworks.com/help/deeplearning/ug/define-custom-training-loops-loss-functions-and-networks.html#mw_7173ce81-4cb6-4221-ac2e-5688aa0fa950).
+
 ## Model details
 
 The model provided in this repository...
@@ -66,6 +70,17 @@ The encoder-decoder model architecture is organised as follows:
 ## Metrics and evaluation
 
 The model is trained using the Mean Absolute Error (MAE) loss and evaluated using the mean great circle distance between predicted and target sequences on the test set (MAE<sub>gc</sub>).
+
+## Limitations
+
+Limitations.
+
+## Resources
+
+MATLAB documentation used as part of this project:
+- A
+- B
+- C
 
 ## License
 
