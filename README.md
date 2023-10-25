@@ -25,9 +25,21 @@ In other words, if a vessel of interest is in motion a trajectory prediction is 
 The goal is to enable end users to easily identify the anomalies that require their attention by virtue of the vast amount of satellite data made available to them, all while considering their limited time and resources.
 
 ## Getting started
+
 ### Requirements
 
-How users can get started with the project
+- [MATLAB R2023b](https://uk.mathworks.com/help/matlab/release-notes.html)
+- [Deep Learning Toolbox](https://uk.mathworks.com/help/deeplearning/release-notes.html)
+- [Statistics and Machine Learning Toolbox](https://uk.mathworks.com/help/stats/release-notes.html)
+- [Fuzzy Logic Toolbox](https://uk.mathworks.com/help/fuzzy/release-notes.html)
+
+To visualise the results, the following toolbox is recommended:
+- [Mapping Toolbox](https://uk.mathworks.com/help/map/release-notes.html)
+
+<!--
+To accelerate training, the following toolbox is recommended:
+- [Parallel Computing Toolbox](https://uk.mathworks.com/help/parallel-computing/release-notes.html)
+-->
 
 Download or clone this repository to your machine and open it in MATLAB.
 
@@ -37,7 +49,7 @@ The script [x] performs data preprocessing.
 
 The script [y] ...
 
-## Network details
+## Model details
 
 The model provided in this repository...
 
