@@ -5,6 +5,8 @@ This repository contains MATLAB files related to ship trajectory prediction usin
 What the project does
 Why the project is useful
 
+The main purpose of the ship trajectory prediction model is...
+
 ## Getting started
 ### Requirements
 
