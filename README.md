@@ -1,4 +1,5 @@
 # ship-trajectory-prediction
+
 This repository contains MATLAB files related to ship trajectory prediction using Recurrent Neural Networks (RNNs).
 
 What the project does
