@@ -26,6 +26,8 @@ The model provided in this repository...
 
 A recurrent sequence-to-sequence encoder-decoder model with attention is implemented.
 
+The advantage of this type of model is that it can accept variable input and output sequence lengths.
+
 The encoder-decoder model architecture is organised as follows:
 
 1. Encoder: BiLSTM
