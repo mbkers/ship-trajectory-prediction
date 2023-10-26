@@ -84,7 +84,11 @@ MATLAB documentation used as part of this project:
 
 ## License
 
+The license is currently being assessed and will be updated shortly.
+
+<!--
 The license is available in the [LICENSE file](LICENSE) in this repository.
+-->
 
 Where users can get help with your project
 Who maintains and contributes to the project
