@@ -47,11 +47,11 @@ Download or clone this repository to your machine and open it in MATLAB.
 
 ### File description
 
-The script [s_data_preprocessing.m](s_data_preprocessing.m) carries out data preprocessing which is ordered as follows:
+Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m) which carries out data preprocessing and is ordered as follows:
 
 1. Import data:
-  - AIS data is downloaded from [Marine Cadastre](https://marinecadastre.gov/) with the following parameters:
-    - From = 2021-04-30
+   - AIS data is downloaded from [Marine Cadastre](https://marinecadastre.gov/) with the following parameters:
+     - From = 2021-04-30
     - To = 2021-05-30
     - X Min = -78
     - Y Min = 31.79999999999997
