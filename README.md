@@ -24,6 +24,10 @@ In other words, if a vessel of interest is in motion a trajectory prediction is 
 
 The goal is to enable end users to easily identify the anomalies that require their attention by virtue of the vast amount of satellite data made available to them, all while considering their limited time and resources.
 
+<!--
+Unlike the majority of the literature, We can contribute in the following two ways: generic vessel trajectories and generic ship type.
+-->
+
 ## Getting started
 
 ### Requirements
@@ -45,18 +49,38 @@ Download or clone this repository to your machine and open it in MATLAB.
 
 The script [s_data_preprocessing.m](s_data_preprocessing.m) carries out data preprocessing which is ordered as follows:
 
-1. Import data that has been downloaded from [Marine Cadastre](https://marinecadastre.gov/).
+1. Import data:
+  - AIS data is downloaded from [Marine Cadastre](https://marinecadastre.gov/) with the following parameters:
+    - From = 2021-04-30
+    - To = 2021-05-30
+    - X Min = -78
+    - Y Min = 31.79999999999997
+    - X Max = -74.3
+    - Y Max = 37.300000000000026
+    - File Size = 1003.62 mb
+  - The study area is similar to the one defined in [Chen et al., 2020](https://doi.org/10.3390/ijgi9020116) (North Carolina, USA).
 2. Missing and invalid data
-3. Aggregate data into sequences based on MMSI number
-4. Resample subsequences
-5. Feature transformation
-6. Filter subsequences by motion pattern
-7. Sliding window
+3. Aggregate data into sequences:
+  - The data is first aggregated into sequences based on the MMSI number.
+  - Next, the sequences are segmented into subsequences based on a time interval threshold.
+  - Additionally, the implied speed is calculated from the latitude and longitude data and included as a new feature.
+4. Resample subsequences:
+   - The subsequences are resampled to regular time intervals by using interpolation.
+5. Feature transformation:
+  - A feature transformation is made to detrend the data, similar to [Chen et al., 2020](https://doi.org/10.3390/ijgi9020116).
+6. Filter subsequences by motion pattern:
+  - A type of clustering is implemented similar to [Capobianco et al., 2021](https://doi.org/10.1109/TAES.2021.3096873).
+7. Sliding window:
+  - A sliding window is implemented which is common in the literature.
 8. Prepare training, validation and test data
 
-The script []()
+The script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) creates, trains and tests a recurrent sequence-to-sequence encoder-decoder model with attention (by using functions rather than a MATLAB layer array, layerGraph or dlnetwork object) for ship trajectory prediction.
 
-The script [z] is an early model that is defined as a `dlnetwork` object as opposed to the model in script [y] which is defined as a Model Function.
+The architecture of this model is inspired by [Capobianco et al., 2021](https://doi.org/10.1109/TAES.2021.3096873).
+
+The script [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m) is an early model that is defined as a `dlnetwork` object as opposed to the model in script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) which is defined as a Model Function.
+
+This model is inspired by [Chen et al., 2020](https://doi.org/10.3390/ijgi9020116).
 
 For more details on their difference see [here](https://uk.mathworks.com/help/deeplearning/ug/define-custom-training-loops-loss-functions-and-networks.html#mw_7173ce81-4cb6-4221-ac2e-5688aa0fa950).
 
@@ -77,6 +101,8 @@ The advantage of this model is that it accepts variable-length input and output 
 ## Metrics and evaluation
 
 The model is trained using the Mean Absolute Error (MAE) loss and evaluated using the mean great circle distance between predicted and target sequences on the test set (MAE<sub>gc</sub>).
+
+## Runtime
 
 ## Limitations
 
