@@ -36,18 +36,25 @@ The goal is to enable end users to easily identify the anomalies that require th
 To visualise the results, the following toolbox is recommended:
 - [Mapping Toolbox](https://uk.mathworks.com/help/map/release-notes.html)
 
-<!--
-To accelerate training, the following toolbox is recommended:
+To accelerate training in the script [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m), the following toolbox is recommended:
 - [Parallel Computing Toolbox](https://uk.mathworks.com/help/parallel-computing/release-notes.html)
--->
 
 Download or clone this repository to your machine and open it in MATLAB.
 
 ### File description
 
-The script [x] performs data preprocessing.
+The script [s_data_preprocessing.m](s_data_preprocessing.m) carries out data preprocessing which is ordered as follows:
 
-The script [y] ...
+1. Import data that has been downloaded from [Marine Cadastre](https://marinecadastre.gov/).
+2. Missing and invalid data
+3. Aggregate data into sequences based on MMSI number
+4. Resample subsequences
+5. Feature transformation
+6. Filter subsequences by motion pattern
+7. Sliding window
+8. Prepare training, validation and test data
+
+The script []()
 
 The script [z] is an early model that is defined as a `dlnetwork` object as opposed to the model in script [y] which is defined as a Model Function.
 
