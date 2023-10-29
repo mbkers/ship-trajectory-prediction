@@ -54,7 +54,7 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m) which c
      - Date: 2021-04-30 to 2021-05-30
      - Longitude limits (min to max): -78 to -74.3
      - Latitude limits (min to max): 31.8 to 37.3
-     - File size = 1003.62 MB
+     - File size: 1003.62 MB
    <!-- - The study area is similar to the one defined in [Chen et al., 2020](https://doi.org/10.3390/ijgi9020116) (North Carolina, USA). -->
 2. Missing and invalid data
 3. Aggregate data into sequences:
