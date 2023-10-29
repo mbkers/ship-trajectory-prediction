@@ -59,7 +59,7 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m) which c
 2. Missing and invalid data
 3. Aggregate data into sequences:
    - The data is aggregated into sequences/trajectories based on the MMSI number.
-   - At the same time, the implied speed and implied bearing features are calculated from the latitude and longitude data.
+   - At the same time, the implied speed and implied bearing features are calculated from the latitude and longitude data. This is because the latitude and longitude data availability is greater than the Speed Over Ground (SOG) and Course Over Ground (COG) data. 
    - Next, the sequences are segmented into subsequences/subtrajectories based on a time interval threshold.
 4. Resample subsequences:
    - The subsequences are resampled to regular time intervals by using interpolation.
