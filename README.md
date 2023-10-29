@@ -96,7 +96,7 @@ The encoder-decoder model architecture is organised as follows:
 2. Aggregate function: Attention mechanism
 3. Decoder: LSTM
 
-The advantage of this model is that it accepts variable-length input and output sequences.
+The advantage of this model is that it accepts variable-length input and output sequences (although note that a sliding window has been applied in this case study).
 
 ## Metrics and evaluation
 
