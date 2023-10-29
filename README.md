@@ -51,19 +51,16 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m) which c
 
 1. Import data:
    - AIS data is downloaded from [Marine Cadastre](https://marinecadastre.gov/) with the following parameters:
-     - From = 2021-04-30
-     - To = 2021-05-30
-     - X Min = -78
-     - Y Min = 31.79999999999997
-     - X Max = -74.3
-     - Y Max = 37.300000000000026
-     - File Size = 1003.62 mb
-   - The study area is similar to the one defined in [Chen et al., 2020](https://doi.org/10.3390/ijgi9020116) (North Carolina, USA).
+     - Date: 2021-04-30 to 2021-05-30
+     - Longitude limits (min to max): -78 to -74.3
+     - Latitude limits (min to max): 31.8 to 37.3
+     - File size = 1003.62 MB
+   <!-- - The study area is similar to the one defined in [Chen et al., 2020](https://doi.org/10.3390/ijgi9020116) (North Carolina, USA). -->
 2. Missing and invalid data
 3. Aggregate data into sequences:
-   - The data is first aggregated into sequences based on the MMSI number.
-   - Next, the sequences are segmented into subsequences based on a time interval threshold.
-   - Additionally, the implied speed is calculated from the latitude and longitude data and included as a new feature. The latitude and longitude data are used to derive this owing to its higher data availability compared to Speed Over Ground (SOG) values.
+   - The data is aggregated into sequences/trajectories based on the MMSI number.
+   - At the same time, the implied speed and implied bearing features are calculated from the latitude and longitude data.
+   - Next, the sequences are segmented into subsequences/subtrajectories based on a time interval threshold.
 4. Resample subsequences:
    - The subsequences are resampled to regular time intervals by using interpolation.
 5. Feature transformation:
