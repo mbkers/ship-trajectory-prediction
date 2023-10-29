@@ -63,7 +63,7 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m) which c
 3. Aggregate data into sequences:
    - The data is first aggregated into sequences based on the MMSI number.
    - Next, the sequences are segmented into subsequences based on a time interval threshold.
-   - Additionally, the implied speed is calculated from the latitude and longitude data and included as a new feature.
+   - Additionally, the implied speed is calculated from the latitude and longitude data and included as a new feature. The latitude and longitude data are used to derive this owing to its higher data availability compared to Speed Over Ground (SOG) values.
 4. Resample subsequences:
    - The subsequences are resampled to regular time intervals by using interpolation.
 5. Feature transformation:
