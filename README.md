@@ -14,9 +14,7 @@ An assessment is made of the predicted trajectory based on a contextual analysis
 
 *Note that this repository covers only the ship trajectory prediction model and does not cover the other steps of the anomaly detection workflow*.
 
-<!--
-It is important to note that the ship trajectory prediction model can also be used more generally; for example, in interpolation (where AIS data is available) ...
--->
+<!-- It is important to note that the ship trajectory prediction model can also be used more generally; for example, in interpolation (where AIS data is available) ... -->
 
 **Why the project is useful**:
 
@@ -26,9 +24,7 @@ In other words, if a vessel of interest is in motion a trajectory prediction is 
 
 The goal is to enable end users to easily identify the anomalies that require their attention by virtue of the vast amount of satellite data made available to them, all while considering their limited time and resources.
 
-<!--
-Unlike the majority of the literature, We can contribute in the following two ways: generic vessel trajectories and generic ship type.
--->
+<!-- Unlike the majority of the literature, We can contribute in the following two ways: generic vessel trajectories and generic ship type. -->
 
 ## Getting started
 
@@ -47,7 +43,9 @@ Download or clone this repository to your machine and open it in MATLAB.
 
 ### File description
 
-Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m) which carries out data preprocessing and includes the following steps:
+Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m).
+
+This script performs data preprocessing and includes the following steps:
 
 1. Import data:
    - AIS data is downloaded from [Marine Cadastre](https://marinecadastre.gov/) with the following parameters:
@@ -72,33 +70,52 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m) which c
 
      ![Sliding window example.](/assets/images/sliding_window.png)
 
-8. Prepare training, validation and test data splits
+8. Prepare training, validation and test data splits:
    - The data is split into training (80%), validation (10%) and test (10%) sets.
    - The data is also rescaled to the range [0,1].
+9. Save data
 
-The script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) creates, trains and tests a recurrent sequence-to-sequence encoder-decoder model with attention (by using functions rather than a MATLAB layer array, layerGraph or dlnetwork object) for ship trajectory prediction.
 
-The architecture of this model is inspired by [Capobianco et al., 2021](https://doi.org/10.1109/TAES.2021.3096873).
+Secondly, run the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m).
 
-The script [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m) is an early model that is defined as a `dlnetwork` object as opposed to the model in script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) which is defined as a Model Function.
+This script creates, trains and tests a recurrent sequence-to-sequence encoder-decoder model with attention for ship trajectory prediction.
 
-This model is inspired by [Chen et al., 2020](https://doi.org/10.3390/ijgi9020116).
+The encoder-decoder model architecture is shown in [Model details](#model-details).
+
+Moreover, the script includes the following steps:
+
+1. Load data
+2. Preprocess data
+3. Initialise model parameters
+4. Define model function(s)
+5. Define model loss function
+6. Specify training options
+7. Train model
+8. Test model
+9. Make predictions (example)
+
+
+The script [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m) is an early model that is defined as a `dlnetwork` object as opposed to the model in the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) which is defined as a Model Function.
+
+A Model Function is defined using functions rather than a typical MATLAB layer array, layerGraph or dlnetwork object.
 
 For more details on their difference see [here](https://uk.mathworks.com/help/deeplearning/ug/define-custom-training-loops-loss-functions-and-networks.html#mw_7173ce81-4cb6-4221-ac2e-5688aa0fa950).
 
+<!-- This model is inspired by [Chen et al., 2020](https://doi.org/10.3390/ijgi9020116). -->
+
 ## Model details
 
-The model provided in this repository...
+The model provided in this repository is a recurrent sequence-to-sequence encoder-decoder model with attention.
 
-A recurrent sequence-to-sequence encoder-decoder model with attention is implemented.
-
-The encoder-decoder model architecture is organised as follows:
+The encoder-decoder model architecture is as follows:
 
 1. Encoder: BiLSTM
 2. Aggregate function: Attention mechanism
 3. Decoder: LSTM
 
 The advantage of this model is that it accepts variable-length input and output sequences (although note that a sliding window has been applied in this case study).
+
+<!-- The architecture of this model is inspired by [Capobianco et al., 2021](https://doi.org/10.1109/TAES.2021.3096873). -->
 
 ## Metrics and evaluation
 
@@ -121,9 +138,7 @@ MATLAB documentation used as part of this project:
 
 The license is currently being assessed and will be updated shortly.
 
-<!--
-The license is available in the [LICENSE file](LICENSE) in this repository.
--->
+<!-- The license is available in the [LICENSE file](LICENSE) in this repository. -->
 
 Where users can get help with your project
 Who maintains and contributes to the project
