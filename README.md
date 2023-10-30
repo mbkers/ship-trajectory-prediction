@@ -69,9 +69,7 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m) which c
    - The subsequences are filtered according to if they intersect a set of Polygonal Geographical Areas (PGAs) (similar to [Capobianco et al., 2021](https://doi.org/10.1109/TAES.2021.3096873)), which can be thought of as a type of clustering.
 7. Sliding window:
    - A sliding window is applied to the subsequences. Specifically, for each subsequence an input and response window of equal size is created. The windows are then shifted along by a specified time step. An example of this process is given below:
-
      ![Sliding window example.](/assets/images/sliding_window.png)
-
 8. Prepare training, validation and test data splits
    - The data is split into training (80%), validation (10%) and test (10%) sets.
    - The data is also rescaled to the range [0,1].
