@@ -4,17 +4,19 @@
 
 This repository contains MATLAB files to carry out ship trajectory prediction on AIS data using Recurrent Neural Networks (RNNs).
 
-The ship trajectory prediction model forms a core component of a larger real-time (or operationally relevant) anomaly detection workflow as part of the [Nereus project](https://oceaninnovationchallenge.org/oceaninnovators-cohort2#cbp=/ocean-innovations/space-based-maritime-surveillance).
+The ship trajectory prediction model forms a core component of a larger, real-time (or operationally relevant) anomaly detection workflow as part of the [Nereus project](https://oceaninnovationchallenge.org/oceaninnovators-cohort2#cbp=/ocean-innovations/space-based-maritime-surveillance).
 
-In the context of the anomaly detection workflow, the ship trajectory prediction model is designed to be applied to anomalous events such as AIS "shut-off" events (i.e., no AIS transmission for a specified duration).
+In the context of the anomaly detection workflow, the ship trajectory prediction model is designed to be applied to anomalous events such as AIS "shut-off" events (i.e. no AIS transmission for a specified duration).
 
-The ship's trajectory before the "shut-off" is input to the model and a trajectory prediction is output for a user-defined duration (e.g., 2.5 hours).
+The ship's trajectory before the "shut-off" is input to the model and a trajectory prediction is output for a user-defined duration (e.g. 2.5 hours).
 
 An assessment is made of the predicted trajectory based on a contextual analysis and, if certain risk thresholds are met, satellite "tip and cue" actions are triggered.
 
-*Note that this repository covers only the ship trajectory prediction model and does not cover the other mentioned steps of the anomaly detection workflow*.
+*Note that this repository covers only the ship trajectory prediction model and does not cover the other steps of the anomaly detection workflow*.
 
-<!-- It is important to note that the ship trajectory prediction model can also be used more generally; for example, in interpolation (where AIS data is available) ... -->
+<!--
+It is important to note that the ship trajectory prediction model can also be used more generally; for example, in interpolation (where AIS data is available) ...
+-->
 
 **Why the project is useful**:
 
@@ -36,9 +38,7 @@ Unlike the majority of the literature, We can contribute in the following two wa
 - [Deep Learning Toolbox](https://uk.mathworks.com/help/deeplearning/release-notes.html)
 - [Statistics and Machine Learning Toolbox](https://uk.mathworks.com/help/stats/release-notes.html)
 - [Fuzzy Logic Toolbox](https://uk.mathworks.com/help/fuzzy/release-notes.html)
-
-To visualise the results, the following toolbox is recommended:
-- [Mapping Toolbox](https://uk.mathworks.com/help/map/release-notes.html)
+- [Mapping Toolbox](https://uk.mathworks.com/help/map/release-notes.html) <!-- To visualise the results, the following toolbox is recommended: -->
 
 To accelerate training in the script [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m), the following toolbox is recommended:
 - [Parallel Computing Toolbox](https://uk.mathworks.com/help/parallel-computing/release-notes.html)
@@ -47,7 +47,7 @@ Download or clone this repository to your machine and open it in MATLAB.
 
 ### File description
 
-Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m) which carries out data preprocessing and is ordered as follows:
+Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m) which carries out data preprocessing and includes the following steps:
 
 1. Import data:
    - AIS data is downloaded from [Marine Cadastre](https://marinecadastre.gov/) with the following parameters:
@@ -60,15 +60,16 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m) which c
 3. Aggregate data into sequences:
    - The data is aggregated into sequences/trajectories based on the MMSI number.
    - At the same time, the implied speed and implied bearing features are calculated from the latitude and longitude data. This is because the latitude and longitude data availability is greater than the Speed Over Ground (SOG) and Course Over Ground (COG) data. 
-   - Next, the sequences are segmented into subsequences/subtrajectories based on a time interval threshold.
+   - Next, the sequences are segmented into subsequences/subtrajectories based on a time interval threshold. In other words, if an AIS sequence contains gaps in transmission for longer than a specified time threshold then it is further split into subsequences.
 4. Resample subsequences:
-   - The subsequences are resampled to regular time intervals by using interpolation.
+   - The subsequences are resampled to regularly spaced time intervals by interpolating the data values.
 5. Feature transformation:
-   - A feature transformation is made to detrend the data, similar to [Chen et al., 2020](https://doi.org/10.3390/ijgi9020116).
+   - A feature transformation is done to detrend the data. Specifically, the difference between consecutive observations for all features is done. <!-- (similar to [Chen et al., 2020](https://doi.org/10.3390/ijgi9020116)) -->
 6. Filter subsequences by motion pattern:
-   - A type of clustering is implemented similar to [Capobianco et al., 2021](https://doi.org/10.1109/TAES.2021.3096873).
+   - The subsequences are filtered according to if they intersect a set of Polygonal Geographical Areas (PGAs) (similar to [Capobianco et al., 2021](https://doi.org/10.1109/TAES.2021.3096873)), which can be thought of as a type of clustering.
 7. Sliding window:
-   - A sliding window is implemented which is common in the literature.
+   - A sliding window is applied to the subsequences. Specifically, for each subsequence an input and response window of equal size is created. The windows are then shifted along by a specified time step. <!-- An example of this process is given below: -->
+   - 
 8. Prepare training, validation and test data
 
 The script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) creates, trains and tests a recurrent sequence-to-sequence encoder-decoder model with attention (by using functions rather than a MATLAB layer array, layerGraph or dlnetwork object) for ship trajectory prediction.
