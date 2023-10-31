@@ -75,16 +75,17 @@ This script performs data preprocessing and includes the following steps:
    - The data is also rescaled to the range [0,1].
 9. Save data
 
-Secondly, choose from one of two models:
+Secondly, choose from one of two models and run the corresponding script:
 
-The script [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m) is a stacked BiLSTM model that is defined as a `dlnetwork` object. This is an early model developed at the beginning of the project.
-
-The script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) is a recurrent sequence-to-sequence encoder-decoder model with attention that is defined as a Model Function. This is the main model but is still in development.
+The script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) is a recurrent sequence-to-sequence encoder-decoder model with attention that is defined as a Model Function. This is currently the main model that is being worked on, but it is still in development.
 
 The encoder-decoder model architecture is shown in [Model details](#model-details).
 
-(A Model Function is defined using functions rather than a typical MATLAB layer array, layerGraph or `dlnetwork` object. For more details on their difference see [here](https://uk.mathworks.com/help/deeplearning/ug/define-custom-training-loops-loss-functions-and-networks.html#mw_7173ce81-4cb6-4221-ac2e-5688aa0fa950).)
+The script [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m) is a stacked BiLSTM model that is defined as a `dlnetwork` object. This is an early model developed at the beginning of the project and will eventually be archived but has been added for completeness.
 
+(Note that a Model Function is defined using functions rather than a typical MATLAB layer array, layerGraph or `dlnetwork` object. For more details on their differences see [here](https://uk.mathworks.com/help/deeplearning/ug/define-custom-training-loops-loss-functions-and-networks.html#mw_7173ce81-4cb6-4221-ac2e-5688aa0fa950).)
+
+<!--
 Moreover, the [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m) script includes the following steps:
 
 1. Load data
@@ -93,8 +94,9 @@ Moreover, the [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m) script includes t
 4. Train model
 5. Test model
 6. Make predictions (example)
+-->
 
-Similarly, the [s_net_encoder_decoder.m](s_net_encoder_decoder.m) script includes the following steps:
+Moreover, the [s_net_encoder_decoder.m](s_net_encoder_decoder.m) script includes the following steps:
 
 1. Load data
 2. Preprocess data
@@ -106,7 +108,7 @@ Similarly, the [s_net_encoder_decoder.m](s_net_encoder_decoder.m) script include
 8. Test model
 9. Make predictions (example)
 
-<!-- This model is inspired by [Chen et al., 2020](https://doi.org/10.3390/ijgi9020116). -->
+<!-- The architecture of this model is inspired by [Chen et al., 2020](https://doi.org/10.3390/ijgi9020116). -->
 
 ## Model details
 
@@ -116,7 +118,7 @@ The recurrent sequence-to-sequence encoder-decoder model with attention is defin
 2. Aggregate function: Attention mechanism
 3. Decoder: LSTM
 
-The advantage of this model is that it accepts variable-length input and output sequences (although note that a sliding window has been applied in this case study).
+The advantage of this model is that it accepts variable-length input and output sequences (although, for now, a sliding window has been implemented).
 
 A schematic of this model is given below:
 
@@ -128,13 +130,23 @@ A schematic of this model is given below:
 
 The models are trained using the Mean Absolute Error (MAE) loss and evaluated using the mean great circle distance between predicted and target sequences on the test set (MAE<sub>gc</sub>).
 
+Quantitative results:
+
+Qualitative results:
+
+
+<!--
 ## Runtime
 
-Training time for the ...
+The training time for the encoder-decoder model was X, running on a ...
 
 ## Limitations
 
 Limitations.
+
+## To dos
+
+To dos.
 
 ## Resources
 
@@ -152,3 +164,4 @@ The license is currently being assessed and will be updated shortly.
 Where users can get help with your project
 
 Who maintains and contributes to the project
+-->
