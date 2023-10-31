@@ -120,7 +120,7 @@ The advantage of this model is that it accepts variable-length input and output 
 
 A schematic of this model is given below:
 
-
+![Encoder-decoder model.](/assets/images/net_encoder_decoder.png)
 
 <!-- The architecture of this model is inspired by [Capobianco et al., 2021](https://doi.org/10.1109/TAES.2021.3096873). -->
 
