@@ -36,16 +36,16 @@ The goal is to enable end users to easily identify the anomalies that require th
 - [Fuzzy Logic Toolbox](https://uk.mathworks.com/help/fuzzy/release-notes.html)
 - [Mapping Toolbox](https://uk.mathworks.com/help/map/release-notes.html) <!-- To visualise the results, the following toolbox is recommended: -->
 
+<!--
 To accelerate training in the script [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m), the following toolbox is recommended:
 - [Parallel Computing Toolbox](https://uk.mathworks.com/help/parallel-computing/release-notes.html)
+-->
 
 Download or clone this repository to your machine and open it in MATLAB.
 
 ### File description
 
-Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m).
-
-This script performs data preprocessing and includes the following steps:
+Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This script performs data preprocessing and includes the following steps:
 
 1. Import data:
    - AIS data is downloaded from [Marine Cadastre](https://marinecadastre.gov/) with the following parameters:
@@ -135,7 +135,6 @@ Quantitative results:
 Qualitative results:
 
 
-<!--
 ## Runtime
 
 The training time for the encoder-decoder model was X, running on a ...
@@ -161,7 +160,6 @@ The license is currently being assessed and will be updated shortly.
 
 <!-- The license is available in the [LICENSE file](LICENSE) in this repository. -->
 
-Where users can get help with your project
+## Contact
 
-Who maintains and contributes to the project
--->
+The primary contact for this project is X.
