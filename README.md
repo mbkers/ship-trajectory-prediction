@@ -75,14 +75,24 @@ This script performs data preprocessing and includes the following steps:
    - The data is also rescaled to the range [0,1].
 9. Save data
 
+Secondly, choose from one of two models:
 
-Secondly, run the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m).
+The script [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m) is a stacked BiLSTM model that is defined as a `dlnetwork` object. (This is an early model developed at the beginning of the project.)
 
-This script creates, trains and tests a recurrent sequence-to-sequence encoder-decoder model with attention for ship trajectory prediction.
+The script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) is a recurrent sequence-to-sequence encoder-decoder model with attention that is defined as a Model Function. The encoder-decoder model architecture is shown in [Model details](#model-details).
 
-The encoder-decoder model architecture is shown in [Model details](#model-details).
+(A Model Function is defined using functions rather than a typical MATLAB layer array, layerGraph or `dlnetwork` object. For more details on their difference see [here](https://uk.mathworks.com/help/deeplearning/ug/define-custom-training-loops-loss-functions-and-networks.html#mw_7173ce81-4cb6-4221-ac2e-5688aa0fa950).)
 
-Moreover, the script includes the following steps:
+Moreover, the [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m) script includes the following steps:
+
+1. Load data
+2. Define the network architecture
+3. Specify training options
+4. Train model
+5. Test model
+6. Make predictions (example)
+
+Similarly, the [s_net_encoder_decoder.m](s_net_encoder_decoder.m) script includes the following steps:
 
 1. Load data
 2. Preprocess data
@@ -93,13 +103,6 @@ Moreover, the script includes the following steps:
 7. Train model
 8. Test model
 9. Make predictions (example)
-
-
-The script [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m) is an early model that is defined as a `dlnetwork` object as opposed to the model in the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) which is defined as a Model Function.
-
-A Model Function is defined using functions rather than a typical MATLAB layer array, layerGraph or dlnetwork object.
-
-For more details on their difference see [here](https://uk.mathworks.com/help/deeplearning/ug/define-custom-training-loops-loss-functions-and-networks.html#mw_7173ce81-4cb6-4221-ac2e-5688aa0fa950).
 
 <!-- This model is inspired by [Chen et al., 2020](https://doi.org/10.3390/ijgi9020116). -->
 
