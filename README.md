@@ -71,22 +71,27 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This s
      ![Sliding window example.](/assets/images/sliding_window.png)
 
 8. Prepare training, validation and test data splits:
+   - The input and response features are selected.
    - The data is split into training (80%), validation (10%) and test (10%) sets.
    - The data is also rescaled to the range [0,1].
 9. Save data
 
 Secondly, choose from one of two models and run the corresponding script:
 
-The script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) is a recurrent sequence-to-sequence encoder-decoder model with attention that is defined as a Model Function. This is currently the main model that is being worked on, but it is still in development.
+The script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) is a recurrent sequence-to-sequence encoder-decoder model with attention that is defined as a Model Function.
 
-The encoder-decoder model architecture is shown in [Model details](#model-details).
+This is currently the main model that is being worked on, but it is still in development.
+
+The advantage of this model is that it accepts variable-length input and output sequences.
+
+The encoder-decoder network architecture is shown in [Model details](#model-details).
 
 The script [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m) is a stacked BiLSTM model that is defined as a `dlnetwork` object. This is an early model developed at the beginning of the project and will eventually be archived but has been added for completeness.
 
 (Note that a Model Function is defined using functions rather than a typical MATLAB layer array, layerGraph or `dlnetwork` object. For more details on their differences see [here](https://uk.mathworks.com/help/deeplearning/ug/define-custom-training-loops-loss-functions-and-networks.html#mw_7173ce81-4cb6-4221-ac2e-5688aa0fa950).)
 
 <!--
-Moreover, the [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m) script includes the following steps:
+The [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m) script includes the following steps:
 
 1. Load data
 2. Define the network architecture
@@ -94,12 +99,15 @@ Moreover, the [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m) script includes t
 4. Train model
 5. Test model
 6. Make predictions (example)
+
+The architecture of this model is inspired by [Chen et al., 2020](https://doi.org/10.3390/ijgi9020116).
 -->
 
 Moreover, the [s_net_encoder_decoder.m](s_net_encoder_decoder.m) script includes the following steps:
 
 1. Load data
-2. Preprocess data
+2. Preprocess data:
+   - The data is managed using datastores to perform specific operations when reading batches of data.
 3. Initialise model parameters
 4. Define model function(s)
 5. Define model loss function
@@ -108,21 +116,13 @@ Moreover, the [s_net_encoder_decoder.m](s_net_encoder_decoder.m) script includes
 8. Test model
 9. Make predictions (example)
 
-<!-- The architecture of this model is inspired by [Chen et al., 2020](https://doi.org/10.3390/ijgi9020116). -->
-
 ## Model details
 
-The recurrent sequence-to-sequence encoder-decoder model with attention is defined as follows:
-
-1. Encoder: BiLSTM
-2. Aggregate function: Attention mechanism
-3. Decoder: LSTM
-
-The advantage of this model is that it accepts variable-length input and output sequences (although, for now, a sliding window has been implemented).
-
-A schematic of this model is given below:
+The recurrent sequence-to-sequence encoder-decoder model with attention is shown in the schematic below:
 
 ![Encoder-decoder model.](/assets/images/net_encoder_decoder.png)
+
+The encoder uses a bidirectional LSTM (BiLSTM) operation and the decoder uses an LSTM operation followed by an attention mechanism.
 
 <!-- The architecture of this model is inspired by [Capobianco et al., 2021](https://doi.org/10.1109/TAES.2021.3096873). -->
 
@@ -131,6 +131,7 @@ A schematic of this model is given below:
 The models are trained using the Mean Absolute Error (MAE) loss and evaluated using the mean great circle distance between predicted and target sequences on the test set (MAE<sub>gc</sub>).
 
 Quantitative results:
+
 
 Qualitative results:
 
