@@ -133,6 +133,7 @@ The models are trained using the Mean Absolute Error (MAE) loss and evaluated us
 Quantitative results:
 
 
+
 Qualitative results:
 
 
@@ -142,11 +143,20 @@ The training time for the encoder-decoder model was X, running on a ...
 
 ## Limitations
 
-Limitations.
+Known limitations include:
 
-## To dos
+- The performance of the model may be sensitive to the training dataset. <!-- (Capobianco et al., 2021) -->
+- A simplification is made to train the model exclusively on cargo vessel types.
+<!-- - Non-variable input sequence length. -->
 
-To dos.
+## Next steps
+
+Next steps include:
+
+- Hyperparameter optimisation, scaling up training data as well as training on university HPC clusters.
+- Generalise model to work with various vessel types as well as different geographic regions. <!-- Merged AIS dataset from different geographic areas. -->
+- To investigate other architectures such as a probabilistic RNN as opposed to a deterministic RNN (by way of including an MDN layer) with a KDE applied to the multiple outputs. This has the advantage of incorporating model uncertainty. <!-- (e.g. Encoder-Decoder + MDN RNN) -->
+- Additionally, transformers.
 
 ## Resources
 
