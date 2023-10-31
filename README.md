@@ -77,9 +77,11 @@ This script performs data preprocessing and includes the following steps:
 
 Secondly, choose from one of two models:
 
-The script [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m) is a stacked BiLSTM model that is defined as a `dlnetwork` object. (This is an early model developed at the beginning of the project.)
+The script [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m) is a stacked BiLSTM model that is defined as a `dlnetwork` object. This is an early model developed at the beginning of the project.
 
-The script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) is a recurrent sequence-to-sequence encoder-decoder model with attention that is defined as a Model Function. The encoder-decoder model architecture is shown in [Model details](#model-details).
+The script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) is a recurrent sequence-to-sequence encoder-decoder model with attention that is defined as a Model Function. This is the main model but is still in development.
+
+The encoder-decoder model architecture is shown in [Model details](#model-details).
 
 (A Model Function is defined using functions rather than a typical MATLAB layer array, layerGraph or `dlnetwork` object. For more details on their difference see [here](https://uk.mathworks.com/help/deeplearning/ug/define-custom-training-loops-loss-functions-and-networks.html#mw_7173ce81-4cb6-4221-ac2e-5688aa0fa950).)
 
@@ -108,9 +110,7 @@ Similarly, the [s_net_encoder_decoder.m](s_net_encoder_decoder.m) script include
 
 ## Model details
 
-The model provided in this repository is a recurrent sequence-to-sequence encoder-decoder model with attention.
-
-The encoder-decoder model architecture is as follows:
+The recurrent sequence-to-sequence encoder-decoder model with attention is defined as follows:
 
 1. Encoder: BiLSTM
 2. Aggregate function: Attention mechanism
@@ -118,13 +118,19 @@ The encoder-decoder model architecture is as follows:
 
 The advantage of this model is that it accepts variable-length input and output sequences (although note that a sliding window has been applied in this case study).
 
+A schematic of this model is given below:
+
+
+
 <!-- The architecture of this model is inspired by [Capobianco et al., 2021](https://doi.org/10.1109/TAES.2021.3096873). -->
 
 ## Metrics and evaluation
 
-The model is trained using the Mean Absolute Error (MAE) loss and evaluated using the mean great circle distance between predicted and target sequences on the test set (MAE<sub>gc</sub>).
+The models are trained using the Mean Absolute Error (MAE) loss and evaluated using the mean great circle distance between predicted and target sequences on the test set (MAE<sub>gc</sub>).
 
 ## Runtime
+
+Training time for the ...
 
 ## Limitations
 
@@ -144,4 +150,5 @@ The license is currently being assessed and will be updated shortly.
 <!-- The license is available in the [LICENSE file](LICENSE) in this repository. -->
 
 Where users can get help with your project
+
 Who maintains and contributes to the project
