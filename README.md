@@ -76,38 +76,17 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This s
    - The data is also rescaled. <!-- to the range [0,1]. -->
 9. Save data
 
-Secondly, choose from one of two models and run the corresponding script:
+Secondly, run the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m), which creates, trains and tests a recurrent sequence-to-sequence encoder-decoder model with attention. The encoder-decoder network architecture is shown in the [Model details](#model-details) section.
 
-The script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) is a recurrent sequence-to-sequence encoder-decoder model with attention that is defined as a Model Function.
+The model is defined as a Model Function as opposed to a typical MATLAB layer array, layerGraph or `dlnetwork` object. For more details on their differences see [this documentation](https://uk.mathworks.com/help/deeplearning/ug/define-custom-training-loops-loss-functions-and-networks.html#mw_7173ce81-4cb6-4221-ac2e-5688aa0fa950).
 
-This is currently the main model that is being worked on, but it is still in development.
-
-The advantage of this model is that it accepts variable-length input and output sequences.
-
-The encoder-decoder network architecture is shown in [Model details](#model-details).
-
-The script [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m) is a stacked BiLSTM model that is defined as a `dlnetwork` object. This is an early model developed at the beginning of the project and will eventually be archived but has been added for completeness.
-
-(Note that a Model Function is defined using functions rather than a typical MATLAB layer array, layerGraph or `dlnetwork` object. For more details on their differences see [here](https://uk.mathworks.com/help/deeplearning/ug/define-custom-training-loops-loss-functions-and-networks.html#mw_7173ce81-4cb6-4221-ac2e-5688aa0fa950).)
-
-<!--
-The [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m) script includes the following steps:
-
-1. Load data
-2. Define the network architecture
-3. Specify training options
-4. Train model
-5. Test model
-6. Make predictions (example)
-
-The architecture of this model is inspired by [Chen et al., 2020](https://doi.org/10.3390/ijgi9020116).
--->
+The advantage of this model is that it accepts variable-length input and output sequences. Originally, a stacked BiLSTM model defined as a `dlnetwork` object was implemented at the beginning of the project, but this required fixed-length input and output sequences.
 
 Moreover, the [s_net_encoder_decoder.m](s_net_encoder_decoder.m) script includes the following steps:
 
 1. Load data
-2. Preprocess data:
-   - The data is managed using datastores to perform specific operations when reading batches of data.
+2. Preprocess data
+   <!-- - The data is managed using datastores to perform specific operations when reading batches of data. -->
 3. Initialise model parameters
 4. Define model function(s)
 5. Define model loss function
@@ -128,7 +107,7 @@ The encoder uses a bidirectional LSTM (BiLSTM) operation and the decoder uses an
 
 ## Metrics and evaluation
 
-The models are trained using the Mean Absolute Error (MAE) loss and evaluated using the mean great circle distance between predicted and target sequences on the test set (MAE<sub>gc</sub>).
+The model is trained using the Mean Absolute Error (MAE) loss and evaluated using the mean great circle distance between predicted and target sequences on the test set (MAE<sub>gc</sub>).
 
 Quantitative results:
 
@@ -147,14 +126,14 @@ The training time was X, running on a ...
 Known limitations include:
 
 - The performance of the model may be sensitive to the training dataset. <!-- (Capobianco et al., 2021) -->
-- A simplification is made to train the model exclusively on cargo vessel types.
+- A simplification has been made which includes training the model exclusively on cargo vessel types from a specific geographic region.
 
 ## Next steps
 
 Aside from code improvements and additions, some next steps include:
 
 - Hyperparameter optimisation, scaling up training data as well as training on university HPC clusters.
-- Generalise the model to work on various vessel types as well as different geographic regions. <!-- Merged AIS dataset from different geographic areas. -->
+- Generalise the model to work on various vessel types from different geographic regions.
 - To investigate other architectures such as a probabilistic RNN as opposed to a deterministic RNN (by way of including an MDN layer) with a KDE applied to the multiple outputs. This has the advantage of incorporating model uncertainty. <!-- (e.g. Encoder-Decoder + MDN RNN) -->
 - Additionally, transformers.
 
