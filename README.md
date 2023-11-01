@@ -151,7 +151,7 @@ Known limitations include:
 
 ## Next steps
 
-Next steps include:
+Aside from code improvements (see Issues), some next steps include:
 
 - Hyperparameter optimisation, scaling up training data as well as training on university HPC clusters.
 - Generalise model to work with various vessel types as well as different geographic regions. <!-- Merged AIS dataset from different geographic areas. -->
