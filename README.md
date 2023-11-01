@@ -35,17 +35,13 @@ The goal is to enable end users to easily identify the anomalies that require th
 - [Statistics and Machine Learning Toolbox](https://uk.mathworks.com/help/stats/release-notes.html)
 - [Fuzzy Logic Toolbox](https://uk.mathworks.com/help/fuzzy/release-notes.html)
 - [Mapping Toolbox](https://uk.mathworks.com/help/map/release-notes.html) <!-- To visualise the results, the following toolbox is recommended: -->
-
-<!--
-To accelerate training in the script [s_net_stacked_bilstm.m](s_net_stacked_bilstm.m), the following toolbox is recommended:
 - [Parallel Computing Toolbox](https://uk.mathworks.com/help/parallel-computing/release-notes.html)
--->
 
 Download or clone this repository to your machine and open it in MATLAB.
 
 ### File description
 
-Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This script performs data preprocessing and includes the following steps:
+Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This script performs the following data preprocessing steps:
 
 1. Import data:
    - AIS data is downloaded from [Marine Cadastre](https://marinecadastre.gov/) with the following parameters:
@@ -76,7 +72,7 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This s
    - The data is also rescaled. <!-- to the range [0,1]. -->
 9. Save data
 
-Secondly, run the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m), which creates, trains and tests a recurrent sequence-to-sequence encoder-decoder model with attention. The encoder-decoder network architecture is shown in the [Model details](#model-details) section.
+Secondly, run the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) which creates, trains and tests a recurrent sequence-to-sequence encoder-decoder model with attention. The encoder-decoder network architecture is shown in the [Model details](#model-details) section.
 
 The model is defined as a Model Function as opposed to a typical MATLAB layer array, layerGraph or `dlnetwork` object. For more details on their differences see [this documentation](https://uk.mathworks.com/help/deeplearning/ug/define-custom-training-loops-loss-functions-and-networks.html#mw_7173ce81-4cb6-4221-ac2e-5688aa0fa950).
 
@@ -86,7 +82,6 @@ Moreover, the [s_net_encoder_decoder.m](s_net_encoder_decoder.m) script includes
 
 1. Load data
 2. Preprocess data
-   <!-- - The data is managed using datastores to perform specific operations when reading batches of data. -->
 3. Initialise model parameters
 4. Define model function(s)
 5. Define model loss function
@@ -119,7 +114,7 @@ X
 
 ## Runtime
 
-The training time was X, running on a ...
+The total training time was X running on an NVIDIA GeForce RTX 3080 with approximately 10 GB of memory.
 
 ## Limitations
 
