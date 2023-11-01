@@ -73,7 +73,7 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This s
 8. Prepare training, validation and test data splits:
    - The input and response features are selected.
    - The data is split into training (80%), validation (10%) and test (10%) sets.
-   - The data is also rescaled to the range [0,1].
+   - The data is also rescaled. <!-- to the range [0,1]. -->
 9. Save data
 
 Secondly, choose from one of two models and run the corresponding script:
@@ -132,14 +132,15 @@ The models are trained using the Mean Absolute Error (MAE) loss and evaluated us
 
 Quantitative results:
 
-
+X
 
 Qualitative results:
 
+X
 
 ## Runtime
 
-The training time for the encoder-decoder model was X, running on a ...
+The training time was X, running on a ...
 
 ## Limitations
 
@@ -147,7 +148,6 @@ Known limitations include:
 
 - The performance of the model may be sensitive to the training dataset. <!-- (Capobianco et al., 2021) -->
 - A simplification is made to train the model exclusively on cargo vessel types.
-<!-- - Non-variable input sequence length. -->
 
 ## Next steps
 
