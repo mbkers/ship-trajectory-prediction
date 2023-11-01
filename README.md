@@ -67,17 +67,16 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This s
      ![Sliding window example.](/assets/images/sliding_window.png)
 
 8. Prepare training, validation and test data splits:
-   - The input and response features are selected.
+   - The input and response features are selected. <!-- Currently, `lat` and `lon` are selected from the available features which includes `lat`, `lon`, `speed_implied`, `bearing_implied`, `lat_diff`, `lon_diff`, `speed_implied_diff` and `bearing_implied_diff`. -->
    - The data is split into training (80%), validation (10%) and test (10%) sets.
    - The data is also rescaled to the range [-1,1].
 9. Save data
 
-
 Secondly, run the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) which creates, trains and tests a recurrent sequence-to-sequence encoder-decoder model with attention. The encoder-decoder network architecture is shown in the [Model details](#model-details) section.
 
-The model is defined as a Model Function as opposed to a typical MATLAB layer array, layerGraph or `dlnetwork` object. For more details on their differences see [this documentation](https://uk.mathworks.com/help/deeplearning/ug/define-custom-training-loops-loss-functions-and-networks.html#mw_7173ce81-4cb6-4221-ac2e-5688aa0fa950).
+(Note that the model is defined as a Model Function as opposed to a typical MATLAB layer array, layerGraph or `dlnetwork` object. For more details on their differences see [this documentation](https://uk.mathworks.com/help/deeplearning/ug/define-custom-training-loops-loss-functions-and-networks.html#mw_7173ce81-4cb6-4221-ac2e-5688aa0fa950).)
 
-The advantage of this model is that it accepts variable-length input and output sequences. Originally, a stacked BiLSTM model defined as a `dlnetwork` object was implemented at the beginning of the project, but this required fixed-length input and output sequences.
+The advantage of this model is that it accepts variable-length input and output sequences. Originally, a stacked BiLSTM model was implemented but this required fixed-length input and output sequences. <!-- (defined as a `dlnetwork` object) -->
 
 Moreover, the [s_net_encoder_decoder.m](s_net_encoder_decoder.m) script includes the following steps:
 
@@ -91,6 +90,8 @@ Moreover, the [s_net_encoder_decoder.m](s_net_encoder_decoder.m) script includes
 8. Test model
 9. Make predictions (example)
 
+<!-- The code is adapted from the MATLAB example at this [link](https://uk.mathworks.com/help/deeplearning/ug/sequence-to-sequence-translation-using-attention.html). -->
+
 ## Model details
 
 The recurrent sequence-to-sequence encoder-decoder model with attention is shown in the schematic below:
@@ -99,11 +100,13 @@ The recurrent sequence-to-sequence encoder-decoder model with attention is shown
 
 The encoder uses a bidirectional LSTM (BiLSTM) operation and the decoder uses an LSTM operation followed by an attention mechanism.
 
-<!-- The architecture of this model is inspired by [Capobianco et al., 2021](https://doi.org/10.1109/TAES.2021.3096873). -->
+<!-- The network architecture is similar to the one presented in [Capobianco et al., 2021](https://doi.org/10.1109/TAES.2021.3096873). -->
 
 ## Metrics and evaluation
 
-The model is trained using the Mean Absolute Error (MAE) loss and evaluated using the mean great circle distance between predicted and target sequences on the test set (MAE<sub>gc</sub>).
+The model is trained using the [Huber loss](https://uk.mathworks.com/help/deeplearning/ref/dlarray.huber.html) and evaluated using the mean great circle distance between predicted and target sequences on the test set (MAE<sub>gc</sub>). <!-- Mean Absolute Error (MAE) loss -->
+
+A prediction time of 2.5 hours is specified in the following results.
 
 Quantitative results:
 
@@ -115,7 +118,7 @@ X
 
 ## Runtime
 
-The total training time was approximately 1 hour after running on an NVIDIA GeForce RTX 3080 with 10 GB of memory.
+The total training time for 100 epochs was approximately 1 hour after running on an NVIDIA GeForce RTX 3080 with 10 GB of memory.
 
 ## Limitations
 
@@ -135,10 +138,14 @@ Known limitations include:
 - Scale up training data and train on university HPC clusters.
 - Generalise the model to work on various vessel types from different geographic regions.
 
-### Long term:
+### Medium term:
 
 - Investigate other architectures such as a probabilistic RNN as opposed to a deterministic RNN (by way of including an MDN layer) with a KDE applied to the multiple outputs. This has the advantage of incorporating model uncertainty. <!-- (e.g. Encoder-Decoder + MDN RNN) -->
 - Additionally, transformers.
+
+### Long term:
+
+- Adapt the code to PyTorch.
 
 ## Resources
 
