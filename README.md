@@ -140,16 +140,22 @@ Known limitations include:
 
 ### Medium term:
 
-- Investigate other architectures such as a probabilistic RNN as opposed to a deterministic RNN (by way of including an MDN layer) with a KDE applied to the multiple outputs. This has the advantage of incorporating model uncertainty. <!-- (e.g. Encoder-Decoder + MDN RNN) -->
-- Additionally, transformers.
+- Investigate probabilistic RNNs as opposed to deterministic RNNs by way of including an MDN layer with a KDE applied to the multiple outputs. This has the advantage of incorporating model uncertainty. <!-- (e.g. Encoder-Decoder + MDN RNN) -->
+- Investigate transformers.
 
 ### Long term:
 
-- Adapt the code to PyTorch.
+- Convert the MATLAB code to PyTorch.
 
-## Resources
+## References
 
-MATLAB documentation used as part of this project:
+MATLAB documentation:
+- [Custom Training Loops](https://uk.mathworks.com/help/deeplearning/deep-learning-custom-training-loops.html)
+- [Train Deep Learning Model in MATLAB](https://uk.mathworks.com/help/deeplearning/ug/training-deep-learning-models-in-matlab.html)
+- [Define Custom Training Loops, Loss Functions, and Networks](https://uk.mathworks.com/help/deeplearning/ug/define-custom-training-loops-loss-functions-and-networks.html)
+- [Sequence-to-Sequence Translation Using Attention](https://uk.mathworks.com/help/deeplearning/ug/sequence-to-sequence-translation-using-attention.html)
+
+Journal articles:
 - A
 - B
 - C
