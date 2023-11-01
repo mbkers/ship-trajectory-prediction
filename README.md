@@ -69,8 +69,9 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This s
 8. Prepare training, validation and test data splits:
    - The input and response features are selected.
    - The data is split into training (80%), validation (10%) and test (10%) sets.
-   - The data is also rescaled. <!-- to the range [0,1]. -->
+   - The data is also rescaled to the range [-1,1].
 9. Save data
+
 
 Secondly, run the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) which creates, trains and tests a recurrent sequence-to-sequence encoder-decoder model with attention. The encoder-decoder network architecture is shown in the [Model details](#model-details) section.
 
@@ -114,7 +115,7 @@ X
 
 ## Runtime
 
-The total training time was X running on an NVIDIA GeForce RTX 3080 with approximately 10 GB of memory.
+The total training time was approximately 1 hour after running on an NVIDIA GeForce RTX 3080 with 10 GB of memory.
 
 ## Limitations
 
