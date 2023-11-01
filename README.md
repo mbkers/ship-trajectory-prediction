@@ -151,10 +151,10 @@ Known limitations include:
 
 ## Next steps
 
-Aside from code improvements (see Issues), some next steps include:
+Aside from code improvements and additions, some next steps include:
 
 - Hyperparameter optimisation, scaling up training data as well as training on university HPC clusters.
-- Generalise model to work with various vessel types as well as different geographic regions. <!-- Merged AIS dataset from different geographic areas. -->
+- Generalise the model to work on various vessel types as well as different geographic regions. <!-- Merged AIS dataset from different geographic areas. -->
 - To investigate other architectures such as a probabilistic RNN as opposed to a deterministic RNN (by way of including an MDN layer) with a KDE applied to the multiple outputs. This has the advantage of incorporating model uncertainty. <!-- (e.g. Encoder-Decoder + MDN RNN) -->
 - Additionally, transformers.
 
