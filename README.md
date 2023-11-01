@@ -126,11 +126,18 @@ Known limitations include:
 
 ## Next steps
 
-Aside from code improvements and additions, some next steps include:
+<!-- Aside from code improvements and additions, some next steps include: -->
 
-- Hyperparameter optimisation, scaling up training data as well as training on university HPC clusters.
+### Short term:
+
+- Investigate other input features.
+- Hyperparameter optimisation.
+- Scale up training data and train on university HPC clusters.
 - Generalise the model to work on various vessel types from different geographic regions.
-- To investigate other architectures such as a probabilistic RNN as opposed to a deterministic RNN (by way of including an MDN layer) with a KDE applied to the multiple outputs. This has the advantage of incorporating model uncertainty. <!-- (e.g. Encoder-Decoder + MDN RNN) -->
+
+### Long term:
+
+- Investigate other architectures such as a probabilistic RNN as opposed to a deterministic RNN (by way of including an MDN layer) with a KDE applied to the multiple outputs. This has the advantage of incorporating model uncertainty. <!-- (e.g. Encoder-Decoder + MDN RNN) -->
 - Additionally, transformers.
 
 ## Resources
