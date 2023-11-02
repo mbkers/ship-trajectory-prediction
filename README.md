@@ -116,7 +116,7 @@ A prediction time of 2.5 hours is specified in the following results. The traini
 
 Quantitative results:
 
-![Plot of mean great circle distance.](/assets/images/plot_gc_dist_mean.png)
+<!-- ![Plot of mean great circle distance.](/assets/images/plot_gc_dist_mean.png) --> <img src="/assets/images/plot_gc_dist_mean.png" width="50">
 
 The histogram shows the mean great circle distance between predicted and target sequences on the test set (1802 (sub)sequences in total). The mode error is 1-2 km and the grand mean or pooled mean error is 3.59 km.
 
