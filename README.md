@@ -49,7 +49,7 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This s
      - Longitude limits (min to max): -78 to -74.3
      - Latitude limits (min to max): 31.8 to 37.3
      - File size: 1003.62 MB
-     - The study area is the coastline of North Carolina, USA. This location is similar to the one defined in Chen et al., [2020](https://doi.org/10.3390/ijgi9020116).
+     - The study area is the North Carolina coastline, USA. This location is similar to the one defined in Chen et al., [2020](https://doi.org/10.3390/ijgi9020116).
 2. Missing and invalid data
 3. Aggregate data into sequences:
    - The data is aggregated into sequences/trajectories based on the MMSI number.
