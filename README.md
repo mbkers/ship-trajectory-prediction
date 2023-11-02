@@ -122,7 +122,7 @@ The histogram shows the mean great circle distance between predicted and target 
 
 Qualitative results:
 
-<img src="/assets/images/fig_qual_1.png" width="250"> <img src="/assets/images/fig_qual_2.png" width="250"> <img src="/assets/images/fig_qual_3.png" width="250"> <img src="/assets/images/fig_qual_4.png" width="250">
+<img src="/assets/images/fig_qual_1.png" width="200"> <img src="/assets/images/fig_qual_2.png" width="200"> <img src="/assets/images/fig_qual_3.png" width="200"> <img src="/assets/images/fig_qual_4.png" width="200">
 
 <!-- ![Straight line trajectory.](/assets/images/fig_qual_1.png) ![Straight line trajectory.](/assets/images/fig_qual_2.png) ![Curved trajectory.](/assets/images/fig_qual_3.png) ![Curved trajectory.](/assets/images/fig_qual_4.png) -->
 
