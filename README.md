@@ -140,7 +140,7 @@ Known limitations include:
 
 ### Medium term:
 
-- Investigate probabilistic RNNs as opposed to deterministic RNNs by way of including an MDN layer with a KDE applied to the multiple outputs. This has the advantage of incorporating model uncertainty. <!-- (e.g. Encoder-Decoder + MDN RNN) -->
+- Investigate probabilistic RNNs as opposed to deterministic RNNs by way of including an MDN layer and applying a KDE to the multiple outputs. This has the advantage of incorporating model uncertainty. <!-- (e.g. Encoder-Decoder + MDN RNN) A similar idea could be to implement a beam search? -->
 - Investigate transformers.
 
 ### Long term:
