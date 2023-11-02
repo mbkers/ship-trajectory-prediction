@@ -114,21 +114,25 @@ The model is trained using the [Huber loss](https://uk.mathworks.com/help/deeple
 
 A prediction time of 2.5 hours is specified in the following results. The training settings can be found in the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m).
 
-Quantitative results:
+### Quantitative results:
 
 <img src="/assets/images/plot_gc_dist_mean.png" width="500"> <!-- ![Plot of mean great circle distance.](/assets/images/plot_gc_dist_mean.png) -->
 
 The histogram shows the mean great circle distance between predicted and target sequences on the test set (1802 (sub)sequences in total). The mode error is 1-2 km and the grand mean or pooled mean error is 3.59 km.
 
-Qualitative results:
+### Qualitative results:
 
-<img src="/assets/images/fig_qual_1.png" width="200"> <img src="/assets/images/fig_qual_2.png" width="200"> <img src="/assets/images/fig_qual_3.png" width="200"> <img src="/assets/images/fig_qual_4.png" width="200">
+<img src="/assets/images/fig_qual_1.png" width="225"> <img src="/assets/images/fig_qual_2.png" width="225"> <img src="/assets/images/fig_qual_3.png" width="225"> <img src="/assets/images/fig_qual_4.png" width="225">
 
 <!-- ![Straight line trajectory.](/assets/images/fig_qual_1.png) ![Straight line trajectory.](/assets/images/fig_qual_2.png) ![Curved trajectory.](/assets/images/fig_qual_3.png) ![Curved trajectory.](/assets/images/fig_qual_4.png) -->
 
-Qualitative results (high error examples):
+### Qualitative results (high error examples):
 
-<img src="/assets/images/fig_qual_high_error_1.png" width="200"> <img src="/assets/images/fig_qual_high_error_2.png" width="200">
+<img src="/assets/images/fig_qual_high_error_1.png" width="225"> <img src="/assets/images/fig_qual_high_error_2.png" width="225">
+
+In general, the model achieves satisfactory performance for common, relatively simple types of motion ([Qualitative results](#qualitative-results)); however, there are a small number of cases where the model fails to predict the true trajectory ([Qualitative results (high error examples)](#qualitative-results-(high-error-examples))).
+
+These high error cases may be caused by incorrect data preprocessing and are under investigation.
 
 ## Runtime
 
@@ -143,14 +147,13 @@ Known limitations include:
 
 ## Next steps
 
-<!-- Aside from code improvements and additions, some next steps include: -->
-
 ### Short term:
 
-- Investigate different combinations of input features.
+- Significantly increase training data and train on university HPC clusters.
 - Hyperparameter optimisation.
-- Scale up training data and train on university HPC clusters.
+- Investigate different combinations of input features.
 - Generalise the model to work on various vessel types from different geographic regions.
+- Code improvements and additions.
 
 ### Medium term:
 
