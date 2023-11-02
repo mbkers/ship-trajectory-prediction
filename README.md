@@ -112,7 +112,7 @@ The LSTM output follows a dropout layer before being concatenated with the conte
 
 The model is trained using the [Huber loss](https://uk.mathworks.com/help/deeplearning/ref/dlarray.huber.html) and evaluated using the mean great circle distance between predicted and target sequences on the test set (MAE<sub>gc</sub>). <!-- Mean Absolute Error (MAE) loss -->
 
-A prediction time of 2.5 hours is specified in the following results.
+A prediction time of 2.5 hours is specified in the following results. The training settings can be found in the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m).
 
 Quantitative results:
 
@@ -151,7 +151,7 @@ Known limitations include:
 
 ### Long term:
 
-- Convert the MATLAB code to PyTorch.
+- Convert MATLAB code to PyTorch.
 
 ## References
 
@@ -162,9 +162,10 @@ MATLAB documentation:
 - [Sequence-to-Sequence Translation Using Attention](https://uk.mathworks.com/help/deeplearning/ug/sequence-to-sequence-translation-using-attention.html)
 
 Journal articles:
-- Capobianco et al., [2021](https://doi.org/10.1109/TAES.2021.3096873)
-- Chen et al., [2020](https://doi.org/10.3390/ijgi9020116)
-- C
+- Capobianco et al., [2021](https://doi.org/10.1109/TAES.2021.3096873).
+- Chen et al., [2020](https://doi.org/10.3390/ijgi9020116).
+- Sørensen et al., [2022](https://doi.org/10.3390/s22052058).
+- More to follow (including a literature review).
 
 ## License
 
@@ -172,6 +173,8 @@ The license is currently being assessed and will be updated shortly.
 
 <!-- The license is available in the [LICENSE file](LICENSE) in this repository. -->
 
+<!--
 ## Contact
 
 The primary contact for this project is X.
+-->
