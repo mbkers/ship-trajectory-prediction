@@ -126,6 +126,10 @@ Qualitative results:
 
 <!-- ![Straight line trajectory.](/assets/images/fig_qual_1.png) ![Straight line trajectory.](/assets/images/fig_qual_2.png) ![Curved trajectory.](/assets/images/fig_qual_3.png) ![Curved trajectory.](/assets/images/fig_qual_4.png) -->
 
+Qualitative results (high error examples):
+
+<img src="/assets/images/fig_qual_high_error_1.png" width="200"> <img src="/assets/images/fig_qual_high_error_2.png" width="200">
+
 ## Runtime
 
 The total training time for 100 epochs was approximately 1 hour after running on an NVIDIA GeForce RTX 3080 with 10 GB of memory.
