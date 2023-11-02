@@ -64,7 +64,7 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This s
 7. Sliding window:
    - A sliding window is applied to the subsequences. Specifically, for each subsequence an input and response window of equal size is created. The windows are then shifted along by a specified time step. An example of this process is given below:
 
-     ![Sliding window example.](/assets/images/sliding_window.png)
+     <img src="/assets/images/sliding_window.png" width="500"> <!-- ![Sliding window example.](/assets/images/sliding_window.png) -->
 
 8. Prepare training, validation and test data splits:
    - The input and response features are selected. <!-- Currently, `lat` and `lon` are selected from the available features which includes `lat`, `lon`, `speed_implied`, `bearing_implied`, `lat_diff`, `lon_diff`, `speed_implied_diff` and `bearing_implied_diff`. -->
@@ -130,9 +130,7 @@ The histogram shows the mean great circle distance between predicted and target 
 
 <img src="/assets/images/fig_qual_high_error_1.png" width="225"> <img src="/assets/images/fig_qual_high_error_2.png" width="225">
 
-In general, the model achieves satisfactory performance for common, relatively simple types of motion ([Qualitative results](#qualitative-results)); however, there are a small number of cases where the model fails to predict the true trajectory ([Qualitative results (high error examples)](#qualitative-results-(high-error-examples))).
-
-These high error cases may be caused by incorrect data preprocessing and are under investigation.
+In general, the model achieves satisfactory performance for common, relatively simple types of motion; however, there are a small number of cases where the model fails to predict the true trajectory. These high error cases may be caused by incorrect data preprocessing and are under investigation.
 
 ## Runtime
 
