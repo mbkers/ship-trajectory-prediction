@@ -49,7 +49,7 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This s
      - Longitude limits (min to max): -78 to -74.3
      - Latitude limits (min to max): 31.8 to 37.3
      - File size: 1003.62 MB
-   <!-- - The study area is similar to the one defined in [Chen et al., 2020](https://doi.org/10.3390/ijgi9020116) (North Carolina, USA). -->
+     - The study area is the coastline of North Carolina, USA. This location is similar to the one defined in Chen et al., [2020](https://doi.org/10.3390/ijgi9020116).
 2. Missing and invalid data
 3. Aggregate data into sequences:
    - The data is aggregated into sequences/trajectories based on the MMSI number.
@@ -58,9 +58,9 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This s
 4. Resample subsequences:
    - The subsequences are resampled to regularly spaced time intervals by interpolating the data values.
 5. Feature transformation:
-   - A feature transformation is done to detrend the data. Specifically, the difference between consecutive observations for all features is done. <!-- (similar to [Chen et al., 2020](https://doi.org/10.3390/ijgi9020116)) -->
+   - A feature transformation is done to detrend the data (Chen et al., [2020](https://doi.org/10.3390/ijgi9020116)). Specifically, the difference between consecutive observations is calculated for all features.
 6. Filter subsequences by motion pattern:
-   - The subsequences are filtered according to if they intersect a set of Polygonal Geographical Areas (PGAs) (similar to [Capobianco et al., 2021](https://doi.org/10.1109/TAES.2021.3096873)), which can be thought of as a type of clustering.
+   - The subsequences are filtered according to if they intersect a set of Polygonal Geographical Areas (PGAs) (Capobianco et al., [2021](https://doi.org/10.1109/TAES.2021.3096873)), which can be thought of as a type of clustering.
 7. Sliding window:
    - A sliding window is applied to the subsequences. Specifically, for each subsequence an input and response window of equal size is created. The windows are then shifted along by a specified time step. An example of this process is given below:
 
@@ -94,13 +94,19 @@ Moreover, the [s_net_encoder_decoder.m](s_net_encoder_decoder.m) script includes
 
 ## Model details
 
-The recurrent sequence-to-sequence encoder-decoder model with attention is shown in the schematic below:
+The recurrent sequence-to-sequence encoder-decoder model with attention is shown in the diagram below:
 
 ![Encoder-decoder model.](/assets/images/net_encoder_decoder.png)
 
-The encoder uses a bidirectional LSTM (BiLSTM) operation and the decoder uses an LSTM operation followed by an attention mechanism.
+The input sequence is passed through the encoder, which outputs an encoded version of the input sequence as well as a hidden state that is used to initialise the decoder's hidden state.
 
-<!-- The network architecture is similar to the one presented in [Capobianco et al., 2021](https://doi.org/10.1109/TAES.2021.3096873). -->
+The encoder consists of a bidirectional LSTM (BiLSTM) layer. <!-- operation --> The decoder makes predictions at each time step using the previous prediction as input and outputs an updated hidden state and context values.
+
+The decoder passes the input data concatenated with the input context through an LSTM layer, and takes the updated hidden state and the encoder output and passes it through an attention mechanism to determine the context vector.
+
+The LSTM output follows a dropout layer before being concatenated with the context vector and passed through a fully connected layer for regression or prediction.
+
+<!-- The network architecture is similar to the one presented in Capobianco et al., [2021](https://doi.org/10.1109/TAES.2021.3096873). -->
 
 ## Metrics and evaluation
 
@@ -133,7 +139,7 @@ Known limitations include:
 
 ### Short term:
 
-- Investigate other input features.
+- Investigate different combinations of input features.
 - Hyperparameter optimisation.
 - Scale up training data and train on university HPC clusters.
 - Generalise the model to work on various vessel types from different geographic regions.
@@ -156,8 +162,8 @@ MATLAB documentation:
 - [Sequence-to-Sequence Translation Using Attention](https://uk.mathworks.com/help/deeplearning/ug/sequence-to-sequence-translation-using-attention.html)
 
 Journal articles:
-- A
-- B
+- Capobianco et al., [2021](https://doi.org/10.1109/TAES.2021.3096873)
+- Chen et al., [2020](https://doi.org/10.3390/ijgi9020116)
 - C
 
 ## License
