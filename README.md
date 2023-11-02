@@ -2,27 +2,27 @@
 
 **What the project does**:
 
-This repository contains MATLAB files to carry out ship trajectory prediction on AIS data using Recurrent Neural Networks (RNNs).
+This repository hosts MATLAB files designed to carry out ship trajectory prediction on AIS data using Recurrent Neural Networks (RNNs).
 
-The ship trajectory prediction model forms a core component of a larger, real-time (or operationally relevant) anomaly detection workflow as part of the [Nereus project](https://oceaninnovationchallenge.org/oceaninnovators-cohort2#cbp=/ocean-innovations/space-based-maritime-surveillance).
+The ship trajectory prediction model forms a core component of a larger, operationally relevant (or "real-time") anomaly detection workflow as part of the [Nereus project](https://oceaninnovationchallenge.org/oceaninnovators-cohort2#cbp=/ocean-innovations/space-based-maritime-surveillance).
 
-In the context of the anomaly detection workflow, the ship trajectory prediction model is designed to be applied to anomalous events such as AIS "shut-off" events (i.e. no AIS transmission for a specified duration).
+Within the context of this anomaly detection workflow, the ship trajectory prediction model is designed to respond to anomalous events such as AIS "shut-off" events, signifying the absence of AIS transmissions for a predefined duration.
 
-The ship's trajectory before the "shut-off" is input to the model and a trajectory prediction is output for a user-defined duration (e.g. 2.5 hours).
+The model takes the ship's trajectory leading up to the "shut-off" event as input and generates a trajectory prediction for a user-defined period (e.g. 2.5 hours).
 
-An assessment is made of the predicted trajectory based on a contextual analysis and, if certain risk thresholds are met, satellite "tip and cue" actions are triggered.
+An assessment of the predicted trajectory is then conducted through a contextual analysis. If certain risk thresholds are exceeded, this triggers satellite "tip and cue" actions.
 
-*Note that this repository covers only the ship trajectory prediction model and does not cover the other steps of the anomaly detection workflow*.
+*Note that this repository covers exclusively the ship trajectory prediction model and does not cover the other components of the anomaly detection workflow*.
 
 <!-- It is important to note that the ship trajectory prediction model can also be used more generally; for example, in interpolation (where AIS data is available) ... -->
 
 **Why the project is useful**:
 
-The model's predictive capability enables an operational association of ship observations from self-reporting systems such as AIS and imaging satellite technologies such as SAR and optical which are unsynchronised and need to be scheduled in advance.
+The model's predictive capabilities enables the operational integration of ship observations from asynchronous self-reporting systems, like AIS, with imaging satellite technologies such as SAR and optical sensors, which require scheduling in advance.
 
-In other words, if a vessel of interest is in motion a trajectory prediction is required to define the acquisition area around the probable location of the vessel when the satellite will pass over it.
+In practical terms, if a target vessel is in motion, a trajectory prediction becomes essential for determining the acquisition area surrounding the likely position of the vessel when a satellite is scheduled to pass overhead.
 
-The goal is to enable end users to easily identify the anomalies that require their attention by virtue of the vast amount of satellite data made available to them, all while considering their limited time and resources.
+The end goal is to enable end-users to efficiently identify anomalies demanding their attention amidst the (fortunately) abundant satellite data available to them, all within the constraints of their limited time and resources.
 
 <!-- Unlike the majority of the literature, We can contribute in the following two ways: generic vessel trajectories and generic ship type. -->
 
@@ -44,41 +44,41 @@ Download or clone this repository to your machine and open it in MATLAB.
 Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This script performs the following data preprocessing steps:
 
 1. Import data:
-   - AIS data is downloaded from [Marine Cadastre](https://marinecadastre.gov/) with the following parameters:
+   - The AIS data is originally downloaded from [Marine Cadastre](https://marinecadastre.gov/) with the following parameters:
      - Date: 2021-04-30 to 2021-05-30
      - Longitude limits (min to max): -78 to -74.3
      - Latitude limits (min to max): 31.8 to 37.3
      - File size: 1003.62 MB
-     - The study area is the North Carolina coastline, USA. This location is similar to the one defined in Chen et al., [2020](https://doi.org/10.3390/ijgi9020116).
+     - The study area encompasses the North Carolina coastline, USA. This region is similar to the one defined in Chen et al., [2020](https://doi.org/10.3390/ijgi9020116).
 2. Missing and invalid data
 3. Aggregate data into sequences:
-   - The data is aggregated into sequences/trajectories based on the MMSI number.
-   - At the same time, the implied speed and implied bearing features are calculated from the latitude and longitude data. This is because the latitude and longitude data availability is greater than the Speed Over Ground (SOG) and Course Over Ground (COG) data. 
-   - Next, the sequences are segmented into subsequences/subtrajectories based on a time interval threshold. In other words, if an AIS sequence contains gaps in transmission for longer than a specified time threshold then it is further split into subsequences.
+   - The data is aggregated into sequences or trajectories based on the MMSI number.
+   - Simultaneously, the implied speed and implied bearing features are calculated based on the latitude and longitude data. This is because of the higher availability of latitude and longitude data as compared to the Speed Over Ground (SOG) and Course Over Ground (COG) data.
+   - Next, the sequences are segmented into subsequences or subtrajectories using a predefined time interval threshold. In other words, if an AIS sequence has transmission gaps exceeding a specified time threshold, it is further split into smaller subsequences.
 4. Resample subsequences:
    - The subsequences are resampled to regularly spaced time intervals by interpolating the data values.
 5. Feature transformation:
    - A feature transformation is done to detrend the data (Chen et al., [2020](https://doi.org/10.3390/ijgi9020116)). Specifically, the difference between consecutive observations is calculated for all features.
 6. Filter subsequences by motion pattern:
-   - The subsequences are filtered according to if they intersect a set of Polygonal Geographical Areas (PGAs) (Capobianco et al., [2021](https://doi.org/10.1109/TAES.2021.3096873)), which can be thought of as a type of clustering.
+   - The subsequences are filtered according to whether they intersect a set of Polygonal Geographical Areas (PGAs) (Capobianco et al., [2021](https://doi.org/10.1109/TAES.2021.3096873)), which can be thought of as a form of clustering.
 7. Sliding window:
-   - A sliding window is applied to the subsequences. Specifically, for each subsequence an input and response window of equal size is created. The windows are then shifted along by a specified time step. An example of this process is given below:
+   - A sliding window technique is applied to the subsequences. Specifically, for each subsequence an input window and a response window of equal size are created. The windows are then progressively shifted by a predefined time step. An illustrative example of this process is provided below:
 
      <img src="/assets/images/sliding_window.png" width="500"> <!-- ![Sliding window example.](/assets/images/sliding_window.png) -->
 
 8. Prepare training, validation and test data splits:
    - The input and response features are selected. <!-- Currently, `lat` and `lon` are selected from the available features which includes `lat`, `lon`, `speed_implied`, `bearing_implied`, `lat_diff`, `lon_diff`, `speed_implied_diff` and `bearing_implied_diff`. -->
-   - The data is split into training (80%), validation (10%) and test (10%) sets.
-   - The data is also rescaled to the range [-1,1].
+   - The data is partitioned into training (80%), validation (10%) and test (10%) sets.
+   - Additionally, the data is rescaled to the range [-1,1].
 9. Save data
 
-Secondly, run the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) which creates, trains and tests a recurrent sequence-to-sequence encoder-decoder model with attention. The encoder-decoder network architecture is shown in the [Model details](#model-details) section.
+Secondly, run the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) which creates, trains and tests a recurrent sequence-to-sequence encoder-decoder model with attention. The encoder-decoder network architecture is detailed in the [Model details](#model-details) section.
 
-(Note that the model is defined as a Model Function as opposed to a typical MATLAB layer array, layerGraph or `dlnetwork` object. For more details on their differences see [this documentation](https://uk.mathworks.com/help/deeplearning/ug/define-custom-training-loops-loss-functions-and-networks.html#mw_7173ce81-4cb6-4221-ac2e-5688aa0fa950).)
+(Note that the model is defined as a Model Function rather than a conventional MATLAB layer array, layerGraph or `dlnetwork` object. For details on their differences, refer to [this documentation](https://uk.mathworks.com/help/deeplearning/ug/define-custom-training-loops-loss-functions-and-networks.html#mw_7173ce81-4cb6-4221-ac2e-5688aa0fa950).)
 
-The advantage of this model is that it accepts variable-length input and output sequences. Originally, a stacked BiLSTM model was implemented but this required fixed-length input and output sequences. <!-- (defined as a `dlnetwork` object) -->
+The notable advantage of this model is its capacity to handle input and output sequences of varying lengths. Initially, a stacked BiLSTM model was implemented but this required fixed-length input and output sequences. <!-- (defined as a `dlnetwork` object) -->
 
-Moreover, the [s_net_encoder_decoder.m](s_net_encoder_decoder.m) script includes the following steps:
+Furthermore, the [s_net_encoder_decoder.m](s_net_encoder_decoder.m) script includes the following steps:
 
 1. Load data
 2. Preprocess data
@@ -98,9 +98,9 @@ The recurrent sequence-to-sequence encoder-decoder model with attention is shown
 
 ![Encoder-decoder model.](/assets/images/net_encoder_decoder.png)
 
-The input sequence is passed through the encoder, which outputs an encoded version of the input sequence as well as a hidden state that is used to initialise the decoder's hidden state.
+The input sequence is passed through the encoder, which produces an encoded representation of the input sequence as well as a hidden state that is used to initialise the decoder's hidden state.
 
-The encoder consists of a bidirectional LSTM (BiLSTM) layer. <!-- operation --> The decoder makes predictions at each time step using the previous prediction as input and outputs an updated hidden state and context values.
+The encoder consists of a bidirectional LSTM (BiLSTM) layer. <!-- operation --> The decoder makes predictions at each time step, using the previous prediction as input, and outputs an updated hidden state and context values.
 
 The decoder passes the input data concatenated with the input context through an LSTM layer, and takes the updated hidden state and the encoder output and passes it through an attention mechanism to determine the context vector.
 
@@ -110,7 +110,7 @@ The LSTM output follows a dropout layer before being concatenated with the conte
 
 ## Metrics and evaluation
 
-The model is trained using the [Huber loss](https://uk.mathworks.com/help/deeplearning/ref/dlarray.huber.html) and evaluated using the mean great circle distance between predicted and target sequences on the test set (MAE<sub>gc</sub>). <!-- Mean Absolute Error (MAE) loss -->
+The model is trained using the [Huber loss](https://uk.mathworks.com/help/deeplearning/ref/dlarray.huber.html) and evaluated using the mean great circle distance between predicted and target sequences on the test set. <!-- Mean Absolute Error (MAE) loss -->
 
 A prediction time of 2.5 hours is specified in the following results. The training settings can be found in the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m).
 
@@ -118,7 +118,7 @@ A prediction time of 2.5 hours is specified in the following results. The traini
 
 <img src="/assets/images/plot_gc_dist_mean.png" width="500"> <!-- ![Plot of mean great circle distance.](/assets/images/plot_gc_dist_mean.png) -->
 
-The histogram shows the mean great circle distance between predicted and target sequences on the test set (1802 (sub)sequences in total). The mode error is 1-2 km and the grand mean or pooled mean error is 3.59 km.
+The histogram shows the mean great circle distance between predicted and target sequences on the test set (1802 (sub)sequences in total). The mode error is 1-2 km and the overall mean error, often referred to as the grand mean or pooled mean error, is 3.59 km.
 
 ### Qualitative results:
 
@@ -130,7 +130,7 @@ The histogram shows the mean great circle distance between predicted and target 
 
 <img src="/assets/images/fig_qual_high_error_1.png" width="225"> <img src="/assets/images/fig_qual_high_error_2.png" width="225">
 
-In general, the model achieves satisfactory performance for common, relatively simple types of motion; however, there are a small number of cases where the model fails to predict the true trajectory. These high error cases may be caused by incorrect data preprocessing and are under investigation.
+In general, the model demonstrates satisfactory performance for relatively simple types of motion; however, there are a small number of instances where the model fails to accurately predict the true trajectory. These instances are currently being scrutinised, and it is suspected that they may be attributed to inaccuracies in the data preprocessing.
 
 ## Runtime
 
@@ -140,27 +140,31 @@ The total training time for 100 epochs was approximately 1 hour after running on
 
 Known limitations include:
 
-- The performance of the model may be sensitive to the training dataset. <!-- (Capobianco et al., 2021) -->
-- A simplification has been made which includes training the model exclusively on cargo vessel types from a specific geographic region.
+- Sensitivity to the training dataset: The model's performance may be influenced by the composition and quality of the training data.
+- Geographic and vessel type specificity: The model has been trained solely on cargo vessel types from a particular geographic region, which may restrict its generalisability to other vessel types and regions.
+
+These limitations are acknowledged and should be taken into consideration when applying the model in different contexts.
 
 ## Next steps
 
 ### Short term:
 
-- Significantly increase training data and train on university HPC clusters.
-- Hyperparameter optimisation.
-- Investigate different combinations of input features.
-- Generalise the model to work on various vessel types from different geographic regions.
-- Code improvements and additions.
+To enhance the model's capabilities and address its limitations, several avenues for improvement are being explored, including:
+
+1. Increase training data: Significantly expand the training dataset, which can be achieved by collecting more diverse data from a variety of sources. Utilising HPC clusters at the university can facilitate efficient processing of large datasets.
+2. Hyperparameter optimisation: Fine tune the model by systematically optimising hyperparameters, such as learning rates, batch sizes, and network architecture. This can lead to better performance and generalisability.
+3. Input features: Investigate different combinations of input features to identify the most informative ones. Experimenting with various data representations and feature engineering techniques can lead to improved model performance.
+4. Generalisation to various vessel types and regions: Modify the model to work effectively with different vessel types and geographic regions. <!-- This involves diversifying the training data and potentially implementing domain adaptation techniques. -->
+5. Code improvements and additions: Continuously improve and expand the codebase, addressing issues and adding new features to enhance the model's flexibility and usability.
 
 ### Medium term:
 
-- Investigate probabilistic RNNs as opposed to deterministic RNNs by way of including an MDN layer and applying a KDE to the multiple outputs. This has the advantage of incorporating model uncertainty. <!-- (e.g. Encoder-Decoder + MDN RNN) A similar idea could be to implement a beam search? -->
-- Investigate transformers.
+1. Probabilistic RNNs: Investigate the use of probabilistic RNNs by incorporating a Mixture Density Network (MDN) layer and applying Kernel Density Estimation (KDE) to the multiple outputs. This approach provides the advantage of capturing model uncertainty. <!-- Implementing a model that combines an Encoder-Decoder architecture with MDN RNN is one option to explore. Additionally, consider implementing techniques like beam search to improve sequence generation. -->
+2. Transformer models: Investigate the applicability of transformer-based architectures in the context of ship trajectory prediction.
 
 ### Long term:
 
-- Convert MATLAB code to PyTorch.
+1. Convert MATLAB code to PyTorch.
 
 ## References
 
@@ -178,7 +182,7 @@ Journal articles:
 
 ## License
 
-The license is currently being assessed and will be updated shortly.
+The license is under evaluation and will be updated in the near future.
 
 <!-- The license is available in the [LICENSE file](LICENSE) in this repository. -->
 
