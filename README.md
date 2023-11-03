@@ -98,7 +98,7 @@ The input sequence is represented as a sequence of points $x_1, x_2, \ldots, x_t
 
 Moreover, the input sequence is passed through the encoder, which produces an encoded representation of the input sequence as well as a hidden state that is used to initialise the decoder's hidden state.
 
-The encoder consists of a bidirectional LSTM (BiLSTM) layer. <!-- operation --> The decoder makes predictions at each time step, using the previous prediction as input, and outputs an updated hidden state and context values.
+The encoder consists of a bidirectional LSTM (BiLSTM) layer. <!-- operation --> The decoder makes predictions at each time step, using the previous prediction as input, and outputs an updated hidden state and context values. <!-- For training: TF; for prediction: autoregressive decoding. -->
 
 The decoder passes the input data concatenated with the input context through an LSTM layer, and takes the updated hidden state and the encoder output and passes it through an attention mechanism to determine the context vector.
 
