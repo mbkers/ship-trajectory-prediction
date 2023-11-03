@@ -1,5 +1,7 @@
 # ship-trajectory-prediction
 
+<!-- Add summary figure. -->
+
 **What the project does**:
 
 This repository hosts MATLAB files designed to carry out ship trajectory prediction on AIS data using Recurrent Neural Networks (RNNs).
@@ -24,7 +26,7 @@ In practical terms, if a target vessel is in motion, a trajectory prediction bec
 
 The end goal is to enable end-users to efficiently identify anomalies demanding their attention amidst the (fortunately) abundant satellite data available to them, all within the constraints of their limited time and resources.
 
-<!-- Unlike the majority of the literature, We can contribute in the following two ways: generic vessel trajectories and generic ship type. -->
+<!-- We contribute to the literature in the following two ways: generic vessel trajectories and generic ship type. -->
 
 ## Getting started
 
@@ -49,7 +51,7 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This s
      - Longitude limits (min to max): -78 to -74.3
      - Latitude limits (min to max): 31.8 to 37.3
      - File size: 1003.62 MB
-     - The study area encompasses the North Carolina coastline, USA. This region is similar to the one defined in Chen et al., [2020](https://doi.org/10.3390/ijgi9020116).
+     - The study area is the North Carolina coastline, USA. (This region is similar to the one defined in Chen et al., [2020](https://doi.org/10.3390/ijgi9020116).)
 2. Missing and invalid data
 3. Aggregate data into sequences:
    - The data is aggregated into sequences or trajectories based on the MMSI number.
@@ -98,7 +100,9 @@ The recurrent sequence-to-sequence encoder-decoder model with attention is shown
 
 ![Encoder-decoder model.](/assets/images/net_encoder_decoder.png)
 
-The input sequence is passed through the encoder, which produces an encoded representation of the input sequence as well as a hidden state that is used to initialise the decoder's hidden state.
+The input sequence is represented as a sequence of points $x_1, x_2, \ldots, x_t$, where $x_i = (\Delta \text{lat}_i, \Delta \text{lon}_i)$ for $i = 1, 2, \ldots, t$. The same notation is used for the prediction sequence $y_1, y_2, \ldots, y_t$.
+
+Moreover, the input sequence is passed through the encoder, which produces an encoded representation of the input sequence as well as a hidden state that is used to initialise the decoder's hidden state.
 
 The encoder consists of a bidirectional LSTM (BiLSTM) layer. <!-- operation --> The decoder makes predictions at each time step, using the previous prediction as input, and outputs an updated hidden state and context values.
 
