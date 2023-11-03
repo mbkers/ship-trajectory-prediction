@@ -6,7 +6,7 @@
 
 This repository hosts MATLAB files designed to carry out ship trajectory prediction on AIS data using Recurrent Neural Networks (RNNs).
 
-The ship trajectory prediction model forms a core component of a larger, operationally relevant (or "real-time") anomaly detection workflow as part of the [Nereus project](https://oceaninnovationchallenge.org/oceaninnovators-cohort2#cbp=/ocean-innovations/space-based-maritime-surveillance).
+The ship trajectory prediction model forms a core component of an operationally relevant (or "real-time") anomaly detection workflow, as part of the [Nereus project](https://oceaninnovationchallenge.org/oceaninnovators-cohort2#cbp=/ocean-innovations/space-based-maritime-surveillance).
 
 Within the context of this anomaly detection workflow, the ship trajectory prediction model is designed to respond to anomalous events such as AIS "shut-off" events, signifying the absence of AIS transmissions for a predefined duration.
 
@@ -16,17 +16,13 @@ An assessment of the predicted trajectory is then conducted through a contextual
 
 *Note that this repository covers exclusively the ship trajectory prediction model and does not cover the other components of the anomaly detection workflow*.
 
-<!-- It is important to note that the ship trajectory prediction model can also be used more generally; for example, in interpolation (where AIS data is available) ... -->
-
 **Why the project is useful**:
 
-The model's predictive capabilities enables the operational integration of ship observations from asynchronous self-reporting systems, like AIS, with imaging satellite technologies such as SAR and optical sensors, which require scheduling in advance.
+The model's predictive capability enables the operational integration of ship observations from asynchronous self-reporting systems, like AIS, with imaging satellite technologies such as SAR and optical sensors, which require scheduling in advance.
 
 In practical terms, if a target vessel is in motion, a trajectory prediction becomes essential for determining the acquisition area surrounding the likely position of the vessel when a satellite is scheduled to pass overhead.
 
 The end goal is to enable end-users to efficiently identify anomalies demanding their attention amidst the (fortunately) abundant satellite data available to them, all within the constraints of their limited time and resources.
-
-<!-- We contribute to the literature in the following two ways: generic vessel trajectories and generic ship type. -->
 
 ## Getting started
 
@@ -64,15 +60,15 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This s
 6. Filter subsequences by motion pattern:
    - The subsequences are filtered according to whether they intersect a set of Polygonal Geographical Areas (PGAs) (Capobianco et al., [2021](https://doi.org/10.1109/TAES.2021.3096873)), which can be thought of as a form of clustering.
 7. Sliding window:
-   - A sliding window technique is applied to the subsequences. Specifically, for each subsequence an input window and a response window of equal size are created. The windows are then progressively shifted by a predefined time step. An illustrative example of this process is provided below:
+   - A sliding window technique is applied to the subsequences. Specifically, for each subsequence an input window and a response window of equal size are created. The windows are then progressively shifted by a specified time step. An illustrative example of this process is provided below:
 
      <img src="/assets/images/sliding_window.png" width="500"> <!-- ![Sliding window example.](/assets/images/sliding_window.png) -->
 
 8. Prepare training, validation and test data splits:
-   - The input and response features are selected. <!-- Currently, `lat` and `lon` are selected from the available features which includes `lat`, `lon`, `speed_implied`, `bearing_implied`, `lat_diff`, `lon_diff`, `speed_implied_diff` and `bearing_implied_diff`. -->
+   - The input and response features are selected. Currently, `lat_diff` and `lon_diff` are selected from the available features. <!-- which includes `lat`, `lon`, `speed_implied`, `bearing_implied`, `lat_diff`, `lon_diff`, `speed_implied_diff` and `bearing_implied_diff`. -->
    - The data is partitioned into training (80%), validation (10%) and test (10%) sets.
    - Additionally, the data is rescaled to the range [-1,1].
-9. Save data
+9. Save data variables
 
 Secondly, run the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) which creates, trains and tests a recurrent sequence-to-sequence encoder-decoder model with attention. The encoder-decoder network architecture is detailed in the [Model details](#model-details) section.
 
@@ -92,8 +88,6 @@ Furthermore, the [s_net_encoder_decoder.m](s_net_encoder_decoder.m) script inclu
 8. Test model
 9. Make predictions (example)
 
-<!-- The code is adapted from the MATLAB example at this [link](https://uk.mathworks.com/help/deeplearning/ug/sequence-to-sequence-translation-using-attention.html). -->
-
 ## Model details
 
 The recurrent sequence-to-sequence encoder-decoder model with attention is shown in the diagram below:
@@ -108,7 +102,7 @@ The encoder consists of a bidirectional LSTM (BiLSTM) layer. <!-- operation --> 
 
 The decoder passes the input data concatenated with the input context through an LSTM layer, and takes the updated hidden state and the encoder output and passes it through an attention mechanism to determine the context vector.
 
-The LSTM output follows a dropout layer before being concatenated with the context vector and passed through a fully connected layer for regression or prediction.
+The LSTM output follows a dropout layer before being concatenated with the context vector and passed through a fully connected layer for regression.
 
 <!-- The network architecture is similar to the one presented in Capobianco et al., [2021](https://doi.org/10.1109/TAES.2021.3096873). -->
 
@@ -134,7 +128,7 @@ The histogram shows the mean great circle distance between predicted and target 
 
 <img src="/assets/images/fig_qual_high_error_1.png" width="225"> <img src="/assets/images/fig_qual_high_error_2.png" width="225">
 
-In general, the model demonstrates satisfactory performance for relatively simple types of motion; however, there are a small number of instances where the model fails to accurately predict the true trajectory. These instances are currently being scrutinised, and it is suspected that they may be attributed to inaccuracies in the data preprocessing.
+In general, the model demonstrates satisfactory performance for common types of motion; however, there are a small number of instances where the model fails to accurately predict the true trajectory. These instances are currently being scrutinised, and it is suspected that they may be attributed to inaccuracies in the data preprocessing.
 
 ## Runtime
 
@@ -153,13 +147,14 @@ These limitations are acknowledged and should be taken into consideration when a
 
 ### Short term:
 
-To enhance the model's capabilities and address its limitations, several avenues for improvement are being explored, including:
+To enhance the model's capabilities and to address its limitations, several avenues for improvement are being explored, including:
 
-1. Increase training data: Significantly expand the training dataset, which can be achieved by collecting more diverse data from a variety of sources. Utilising HPC clusters at the university can facilitate efficient processing of large datasets.
-2. Hyperparameter optimisation: Fine tune the model by systematically optimising hyperparameters, such as learning rates, batch sizes, and network architecture. This can lead to better performance and generalisability.
-3. Input features: Investigate different combinations of input features to identify the most informative ones. Experimenting with various data representations and feature engineering techniques can lead to improved model performance.
-4. Generalisation to various vessel types and regions: Modify the model to work effectively with different vessel types and geographic regions. <!-- This involves diversifying the training data and potentially implementing domain adaptation techniques. -->
-5. Code improvements and additions: Continuously improve and expand the codebase, addressing issues and adding new features to enhance the model's flexibility and usability.
+1. Increase training data: Significantly expand the training dataset.
+2. Utilise HPC clusters at the university to facilitate efficient processing of large datasets.
+3. Hyperparameter optimisation: Fine tune the model by systematically optimising hyperparameters, such as learning rates, batch sizes, and network architecture. This can lead to better performance and generalisability.
+4. Input features: Investigate different combinations of input features to identify the most informative ones.
+5. Generalisation to various vessel types and regions: Modify the model to work effectively with different vessel types and geographic regions.
+6. Code improvements and additions: Continuously improve and expand the codebase, addressing issues and adding new features to enhance the model's flexibility and usability.
 
 ### Medium term:
 
@@ -189,9 +184,3 @@ Journal articles:
 The license is under evaluation and will be updated in the near future.
 
 <!-- The license is available in the [LICENSE file](LICENSE) in this repository. -->
-
-<!--
-## Contact
-
-The primary contact for this project is X.
--->
