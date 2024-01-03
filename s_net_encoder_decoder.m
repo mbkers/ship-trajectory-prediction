@@ -311,24 +311,32 @@ rmse_all = sqrt(mean(Y_test_diff.^2,"all"));
         end
     end
 
-% Compute the mean great circle distance between predicted and target
-% sequences on the test set
+% Compute the mean and max great circle distance between predicted and
+% target sequences on the test set
 gc_dist_mean = zeros(1,numel(Y_test_geo));
+gc_dist_max = zeros(1,numel(Y_test_geo));
 for gc_dist_idx = 1 : numel(Y_test_geo)
     gc_dist_mean(gc_dist_idx) = mean(distance(Y_test_geo{gc_dist_idx}(:,1:2),...
         ais_test{gc_dist_idx,2}{:,{'lat' 'lon'}},wgs84Ellipsoid('km')));
+    gc_dist_max(gc_dist_idx) = max(distance(Y_test_geo{gc_dist_idx}(:,1:2),...
+        ais_test{gc_dist_idx,2}{:,{'lat' 'lon'}},wgs84Ellipsoid('km')));
 end
 
-% Calculate the mean gc distance (grand mean or pooled mean)
+% Calculate the mean of the mean gc distance (grand mean or pooled mean)
+% and mean of the max gc distance
 gc_dist_grand_mean = mean(gc_dist_mean);
+gc_dist_max_mean = mean(gc_dist_max);
 
-% Plot the mean great circle distance values
+% Plot the mean and max great circle distance values
 figure
-histogram(gc_dist_mean)
+histogram(gc_dist_mean,"BinWidth",1)
 hold on
+histogram(gc_dist_max,"BinWidth",1)
 xline(gc_dist_grand_mean,"--",strcat(string(gc_dist_grand_mean)," ","km"))
-xlabel("Mean distance (km)")
+xline(gc_dist_max_mean,"--",strcat(string(gc_dist_max_mean)," ","km"))
+xlabel("Great circle distance (km)")
 ylabel("Frequency")
+legend("Mean","Max")
 
 % figure
 % bar(gc_dist_mean)
