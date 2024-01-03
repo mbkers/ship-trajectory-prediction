@@ -108,15 +108,15 @@ The LSTM output follows a dropout layer before being concatenated with the conte
 
 ## Metrics and evaluation
 
-The model is trained using the [Huber loss](https://uk.mathworks.com/help/deeplearning/ref/dlarray.huber.html) and evaluated using the mean great circle distance between predicted and target sequences on the test set. <!-- Mean Absolute Error (MAE) loss -->
+The model is trained using the [Huber loss](https://uk.mathworks.com/help/deeplearning/ref/dlarray.huber.html) and evaluated using the mean and max great circle distance between predicted and target sequences on the test set. <!-- Mean Absolute Error (MAE) loss -->
 
 A prediction time of 2.5 hours is specified in the following results. The training settings can be found in the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m).
 
 ### Quantitative results:
 
-<img src="/assets/images/plot_gc_dist_mean.png" width="500"> <!-- ![Plot of mean great circle distance.](/assets/images/plot_gc_dist_mean.png) -->
+<img src="/assets/images/plot_gc_dist.png" width="500"> <!-- ![Plot of mean great circle distance.](/assets/images/plot_gc_dist_mean.png) -->
 
-The histogram shows the mean great circle distance between predicted and target sequences on the test set (1802 (sub)sequences in total). The mode error is 1-2 km and the overall mean error, often referred to as the grand mean or pooled mean error, is 3.59 km.
+The histograms show the mean and max great circle distance between predicted and target sequences on the test set (1802 (sub)sequences in total). The mode error is 1-2 km and the overall mean error, often referred to as the grand mean or pooled mean error, is 3.59 km and 7.22 km for the mean and max great circle distance, respectively.
 
 ### Qualitative results:
 
