@@ -42,7 +42,7 @@ Download or clone this repository to your machine and open it in MATLAB.
 Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This script performs the following data preprocessing steps:
 
 1. Import data:
-   - The AIS data (ADD GOOGLE DRIVE LINK) is originally downloaded from [Marine Cadastre](https://marinecadastre.gov/) with the following parameters:
+   - The AIS data is originally downloaded from [Marine Cadastre](https://marinecadastre.gov/) with the following parameters:
      - Date: 2021-04-30 to 2021-05-30
      - Longitude limits (min to max): -78 to -74.3
      - Latitude limits (min to max): 31.8 to 37.3
