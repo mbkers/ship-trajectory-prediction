@@ -181,6 +181,6 @@ Journal articles:
 
 ## License
 
-The license is available in the [LICENSE file](LICENSE) in this repository.
+The license is available in the [LICENSE file](LICENSE.txt) in this repository.
 
 <!-- The license is under evaluation and will be updated in the near future. -->
