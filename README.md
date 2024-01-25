@@ -50,17 +50,17 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This s
      - For access to the original CSV file (file size: 1003.62 MB) or for any inquiries, please feel free to raise an issue in this GitHub repository.
 2. Manage missing and invalid data
 3. Aggregate data into sequences:
-   - The data is aggregated into sequences or trajectories based on the MMSI number.
+   - The data is aggregated into sequences or trajectories based on the Maritime Mobile Service Identity (MMSI) number, which uniquely identifies a vessel.
    - Simultaneously, the implied speed and implied bearing features are calculated based on the latitude and longitude data. This is because of the higher availability of latitude and longitude data as compared to the Speed Over Ground (SOG) and Course Over Ground (COG) data.
    - Next, the sequences are segmented into subsequences or subtrajectories using a predefined time interval threshold. In other words, if an AIS sequence has transmission gaps exceeding a specified time threshold, it is further split into smaller subsequences.
 4. Resample subsequences:
    - The subsequences are resampled to regularly spaced time intervals by interpolating the data values.
-5. Feature transformation:
-   - A feature transformation is done to detrend the data (Chen et al., [2020](https://doi.org/10.3390/ijgi9020116)). Specifically, the difference between consecutive observations is calculated for all features.
+5. Transform features:
+   - A feature transformation is done to detrend the data (Chen et al., [2020](https://doi.org/10.3390/ijgi9020116)). Specifically, the difference between consecutive observations is calculated for each feature. The transformed features are named similarly to the original ones, but with a delta symbol (Δ) or suffix "_diff" added to indicate the difference calculation, for example, the transformation of 'lat' (latitude) becomes 'Δlat' or 'lat_diff'.
 6. Filter subsequences by motion pattern:
-   - The subsequences are filtered according to whether they intersect a set of Polygonal Geographical Areas (PGAs) (Capobianco et al., [2021](https://doi.org/10.1109/TAES.2021.3096873)), which can be thought of as a form of clustering.
-7. Sliding window:
-   - A sliding window technique is applied to the subsequences. Specifically, for each subsequence an input window and a response window of equal size are created. The windows are then progressively shifted by a specified time step. An illustrative example of this process is provided below:
+   - The subsequences are filtered according to whether they intersect a set of Polygonal Geographical Areas (PGAs) (Capobianco et al., [2021](https://doi.org/10.1109/TAES.2021.3096873)), which can be considered as a type of clustering method.
+7. Apply a sliding window:
+   - A sliding window technique is applied to the subsequences, producing extra sequences from each one (these could be termed as "subsubsequences"). These generated sequences then serve as the input and response data for creating the model. Specifically, for each subsequence an input window and a response window of equal size are created. The windows are then progressively shifted by a specified time step. An illustrative example of this process is provided below:
 
      <img src="/assets/images/sliding_window.png" width="500"> <!-- ![Sliding window example.](/assets/images/sliding_window.png) -->
 
@@ -108,9 +108,9 @@ The LSTM output follows a dropout layer before being concatenated with the conte
 
 ## Metrics and evaluation
 
-The model is trained using the [Huber loss](https://uk.mathworks.com/help/deeplearning/ref/dlarray.huber.html) and evaluated using the mean and max great circle distance between predicted and target sequences on the test set. <!-- Mean Absolute Error (MAE) loss -->
+The model is trained using the [Huber loss](https://uk.mathworks.com/help/deeplearning/ref/dlarray.huber.html) between predicted and target sequences from the training set. The model is then evaluated using the mean and max great circle distance between predicted and target sequences from the test set. Using the Huber loss during training and a physical distance (like the great circle distance) for evaluation combines the benefits of a robust training process with an evaluation metric that provides a direct real-world interpretation of the model’s performance.  <!-- Mean Absolute Error (MAE) loss -->
 
-A prediction time of 2.5 hours is specified in the following results. The training settings can be found in the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m).
+Moreover, a prediction time of 2.5 hours is specified in the following results. The training settings can be found in the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m).
 
 ### Quantitative results:
 
