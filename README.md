@@ -16,7 +16,7 @@ The model takes the ship's trajectory leading up to the "shut-off" event as inpu
 
 An assessment of the predicted trajectory is then conducted through a contextual analysis. If certain risk thresholds are exceeded, this triggers satellite "tip and cue" actions.
 
-*Note that this repository covers exclusively the ship trajectory prediction model and does not cover the other components of the anomaly detection workflow*.
+_Note that this repository covers exclusively the ship trajectory prediction model and does not cover the other components of the anomaly detection workflow_.
 
 **Why the project is useful**:
 
