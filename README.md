@@ -145,28 +145,6 @@ Known limitations include:
 
 These limitations are acknowledged and should be taken into consideration when applying the model in different contexts.
 
-## Next steps
-
-### Short term:
-
-To enhance the model's capabilities and to address its limitations, several avenues for improvement are being explored, including:
-
-1. Increase training data: Significantly expand the training dataset.
-2. Utilise HPC clusters at the university to facilitate efficient processing of large datasets.
-3. Hyperparameter optimisation: Fine tune the model by systematically optimising hyperparameters, such as learning rates, batch sizes, and network architecture. This can lead to better performance and generalisability.
-4. Input features: Investigate different combinations of input features to identify the most informative ones.
-5. Generalisation to various vessel types and regions: Modify the model to work effectively with different vessel types and geographic regions.
-6. Code improvements and additions: Continuously improve and expand the codebase, addressing issues and adding new features to enhance the model's flexibility and usability.
-
-### Medium term:
-
-1. Probabilistic RNNs: Investigate the use of probabilistic RNNs by incorporating a Mixture Density Network (MDN) layer and applying Kernel Density Estimation (KDE) to the multiple outputs. This approach provides the advantage of capturing model uncertainty. <!-- Implementing a model that combines an Encoder-Decoder architecture with MDN RNN is one option to explore. Additionally, consider implementing techniques like beam search to improve sequence generation. -->
-2. Transformer models: Investigate the applicability of transformer-based architectures in the context of ship trajectory prediction.
-
-### Long term:
-
-1. Convert MATLAB code to PyTorch.
-
 ## References
 
 MATLAB documentation:
