@@ -110,20 +110,16 @@ learnRateSchedule = "piecewise";
 learnRateDropPeriod = 10; % 100
 learnRateDropFactor = 0.5;
 
-% Plots
-%
-
 % Mini-batch size
 miniBatchSize = 128;
 
 % Number of epochs
 maxEpochs = 100; % 1000
 
-% Validation (TODO - note that it results in longer training times)
-    % 
-    % validationData = {XValidation,TValidation};
-    % validationFrequency = 50;
-
+% Validation
+    % Validation frequency
+    validationFrequency = 50;
+    
     % Early stopping
     % validationPatience = 5;
 
@@ -138,14 +134,19 @@ squaredGradientDecayFactor = 0.999;
 %% Train model
 % Train the model using a custom training loop.
 
-% Preprocess the data for training:
+% Prepare the training and validation data:
 % The 'minibatchqueue' function processes and manages mini-batches of data
 % for training. For each mini-batch, the 'minibatchqueue' object returns
 % four output arguments: the source sequences, the target sequences, the
 % lengths of all source sequences in the mini-batch, and the sequence mask
 % of the target sequences.
 numMiniBatchOutputs = 4;
-mbq = minibatchqueue(dsTrain, ...
+mbq_train = minibatchqueue(dsTrain, ...
+    numMiniBatchOutputs, ...
+    MiniBatchSize=miniBatchSize, ...
+    MiniBatchFcn=@(x,t) preprocessMiniBatch(x,t,inputSize,outputSize));
+
+mbq_val = minibatchqueue(dsVal, ...
     numMiniBatchOutputs, ...
     MiniBatchSize=miniBatchSize, ...
     MiniBatchFcn=@(x,t) preprocessMiniBatch(x,t,inputSize,outputSize));
@@ -157,13 +158,20 @@ trailingAvgSq = [];
 % Calculate the total number of iterations for the training progress monitor
 numObservationsTrain = numel(X_train);
 numIterationsPerEpoch = ceil(numObservationsTrain / miniBatchSize);
-numIterations = maxEpochs * numIterationsPerEpoch;
+maxIterations = maxEpochs * numIterationsPerEpoch;
 
-% Initialise the training progress monitor
-monitor = trainingProgressMonitor( ...
-    Metrics="Loss", ...
-    Info=["Epoch","ExecutionEnvironment","Iteration","LearningRate"], ...
-    XLabel="Iteration");
+% Initialise and prepare the training progress monitor
+monitor = trainingProgressMonitor;
+
+monitor.Metrics = ["TrainingLoss","ValidationLoss"];
+
+groupSubPlot(monitor,"Loss",["TrainingLoss","ValidationLoss"]);
+
+monitor.Info = ["LearningRate","Epoch","Iteration","ExecutionEnvironment"];
+
+monitor.XLabel = "Iteration";
+monitor.Status = "Configuring";
+monitor.Progress = 0;
 
 % Select the execution environment
 executionEnvironment = "auto";
@@ -173,13 +181,16 @@ else
     updateInfo(monitor,ExecutionEnvironment="CPU");
 end
 
-% Train the model. For each epoch:
+% Train the model using a custom training loop. For each epoch:
 % 1) Shuffle the data and loop over mini-batches of data. For each
 % mini-batch:
     % 1.1) Evaluate the model loss and gradients
     % 1.2) Update the encoder and decoder model parameters using the 'adamupdate'
     % function
-    % 1.3) Update the training progress monitor
+    % 1.3) Record and plot the training loss
+    % 1.4) Update the training progress monitor
+    % 1.5) Record and plot the validation loss
+    % 1.6) Update the progress percentage
 % 2) Determine the learning rate for the piecewise learning rate schedule
 % 3) Stop training when the 'Stop' property of the training progress
 % monitor is true
@@ -194,17 +205,17 @@ while epoch < maxEpochs && ~monitor.Stop
     epoch = epoch + 1;
 
     % Shuffle data/Reset data
-    shuffle(mbq); % reset(mbq);
+    shuffle(mbq_train); % reset(mbq_train);
 
     % Loop over mini-batches
-    while hasdata(mbq) && ~monitor.Stop
+    while hasdata(mbq_train) && ~monitor.Stop
         iteration = iteration + 1;
 
         % Read mini-batch of data
-        [X,T,sequenceLengthsSource,maskTarget] = next(mbq);
+        [X,T,sequenceLengthsSource,maskTarget] = next(mbq_train);
 
         % Evaluate the model loss and gradients
-        [loss,gradients] = dlfeval(@modelLoss,parameters,X,T, ...
+        [lossTrain,gradients] = dlfeval(@modelLoss,parameters,X,T, ...
             sequenceLengthsSource,maskTarget,dropout);
 
         % Update the model parameters using the ADAM optimisation algorithm
@@ -213,15 +224,42 @@ while epoch < maxEpochs && ~monitor.Stop
             learnRate,gradientDecayFactor,squaredGradientDecayFactor);
 
         % Normalise the loss by sequence length
-        loss = loss ./ size(T,3);
+        lossTrain = lossTrain ./ size(T,3);
+
+        % Record training loss
+        recordMetrics(monitor,iteration,TrainingLoss=lossTrain);
 
         % Update the training progress monitor
-        recordMetrics(monitor,iteration,Loss=loss);
         updateInfo(monitor, ...
-            Epoch=string(epoch) + " of " + string(maxEpochs), ...
             LearningRate=learnRate, ...
-            Iteration=string(iteration) + " of " + string(numIterations));
-        monitor.Progress = 100 * iteration / numIterations;
+            Epoch=string(epoch) + " of " + string(maxEpochs), ...
+            Iteration=string(iteration) + " of " + string(maxIterations));
+
+        % Record validation loss
+        if iteration == 1 || mod(iteration,validationFrequency) == 0
+            % Read mini-batch of data
+            [X,T,~,~] = next(mbq_val); % sequenceLengthsSource,maskTarget
+
+            % Encode
+            sequenceLengths = []; % No masking
+            [Z,hiddenState] = modelEncoder(parameters.encoder,X,sequenceLengths);
+
+            % Decoder predictions
+            dropout = 0;
+            doTeacherForcing = false;
+            sequenceLength = size(X,3); % Sequence length to predict
+            Y = decoderPredictions(parameters.decoder,Z,T,hiddenState, ...
+                dropout,doTeacherForcing,sequenceLength);
+
+            % Compute loss
+            lossVal = huber(Y,T,DataFormat="CBT");
+
+            % Record validation loss
+            recordMetrics(monitor,iteration,ValidationLoss=lossVal);
+        end
+
+        % Update progress percentage
+        monitor.Progress = 100 * iteration / maxIterations;
     end
 
     % Drop the learn rate if epoch is a multiple of 'learnRateDropPeriod'
