@@ -14,10 +14,15 @@ load("s_data_preprocessing_variables.mat")
 % Create arrayDatastore objects from the source and target data
 dsXTrain = arrayDatastore(X_train,OutputType="same");
 dsTTrain = arrayDatastore(T_train,OutputType="same");
-% dsXVal
+dsXVal = arrayDatastore(X_val,OutputType="same");
+dsTVal = arrayDatastore(T_val,OutputType="same");
+dsXTest = arrayDatastore(X_test,OutputType="same");
+dsTTest = arrayDatastore(T_test,OutputType="same");
 
 % Combine them to create a CombinedDatastore object
 dsTrain = combine(dsXTrain,dsTTrain);
+dsVal = combine(dsXVal,dsTVal);
+dsTest = combine(dsXTest,dsTTest);
 
 %% Initialise model parameters
 % Specify parameters for both the encoder and decoder
@@ -233,13 +238,6 @@ else
 end
 
 %% Test model
-% Create arrayDatastore objects from the source and target data
-dsXTest = arrayDatastore(X_test,OutputType="same");
-dsTTest = arrayDatastore(T_test,OutputType="same");
-
-% Combine them to create a CombinedDatastore object
-dsTest = combine(dsXTest,dsTTest);
-
 % Preprocess the data
 mbq_test = minibatchqueue(dsTest, ...
     numMiniBatchOutputs, ...
