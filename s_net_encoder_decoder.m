@@ -118,7 +118,7 @@ maxEpochs = 100; % 1000
 
 % Validation
     % Validation frequency
-    validationFrequency = 50;
+    % validationFrequency = 50;
     
     % Early stopping
     % validationPatience = 5;
@@ -160,6 +160,11 @@ numObservationsTrain = numel(X_train);
 numIterationsPerEpoch = ceil(numObservationsTrain / miniBatchSize);
 maxIterations = maxEpochs * numIterationsPerEpoch;
 
+% Calculate the validation frequency (evenly distribute)
+numObservationsVal = numel(X_val);
+numIterationsPerEpochVal = ceil(numObservationsVal / miniBatchSize);
+validationFrequency = ceil(numIterationsPerEpoch / numIterationsPerEpochVal);
+
 % Initialise and prepare the training progress monitor
 monitor = trainingProgressMonitor;
 
@@ -182,11 +187,11 @@ else
 end
 
 % Train the model using a custom training loop. For each epoch:
-% 1) Shuffle the data and loop over mini-batches of data. For each
-% mini-batch:
+% 1) Shuffle the training data, reset the validation data and loop over
+% mini-batches of training data. For each mini-batch:
     % 1.1) Evaluate the model loss and gradients
-    % 1.2) Update the encoder and decoder model parameters using the 'adamupdate'
-    % function
+    % 1.2) Update the encoder and decoder model parameters using the
+    % 'adamupdate' function
     % 1.3) Record and plot the training loss
     % 1.4) Update the training progress monitor
     % 1.5) Record and plot the validation loss
@@ -204,8 +209,11 @@ monitor.Status = "Running";
 while epoch < maxEpochs && ~monitor.Stop
     epoch = epoch + 1;
 
-    % Shuffle data/Reset data
-    shuffle(mbq_train); % reset(mbq_train);
+    % Shuffle training mini-batch queues
+    shuffle(mbq_train);
+
+    % Reset validation mini-batch queues
+    reset(mbq_val);
 
     % Loop over mini-batches
     while hasdata(mbq_train) && ~monitor.Stop
@@ -238,7 +246,7 @@ while epoch < maxEpochs && ~monitor.Stop
         % Record validation loss
         if iteration == 1 || mod(iteration,validationFrequency) == 0
             % Read mini-batch of data
-            [X,T,~,~] = next(mbq_val); % sequenceLengthsSource,maskTarget
+            [X,T,~,~] = next(mbq_val);
 
             % Encode
             sequenceLengths = []; % No masking
@@ -253,6 +261,9 @@ while epoch < maxEpochs && ~monitor.Stop
 
             % Compute loss
             lossVal = huber(Y,T,DataFormat="CBT");
+
+            % Normalise the loss by sequence length
+            lossVal = lossVal ./ size(T,3);
 
             % Record validation loss
             recordMetrics(monitor,iteration,ValidationLoss=lossVal);
