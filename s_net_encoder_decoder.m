@@ -14,10 +14,15 @@ load("s_data_preprocessing_variables.mat")
 % Create arrayDatastore objects from the source and target data
 dsXTrain = arrayDatastore(X_train,OutputType="same");
 dsTTrain = arrayDatastore(T_train,OutputType="same");
-% dsXVal
+dsXVal = arrayDatastore(X_val,OutputType="same");
+dsTVal = arrayDatastore(T_val,OutputType="same");
+dsXTest = arrayDatastore(X_test,OutputType="same");
+dsTTest = arrayDatastore(T_test,OutputType="same");
 
 % Combine them to create a CombinedDatastore object
 dsTrain = combine(dsXTrain,dsTTrain);
+dsVal = combine(dsXVal,dsTVal);
+dsTest = combine(dsXTest,dsTTest);
 
 %% Initialise model parameters
 % Specify parameters for both the encoder and decoder
@@ -105,22 +110,14 @@ learnRateSchedule = "piecewise";
 learnRateDropPeriod = 10; % 100
 learnRateDropFactor = 0.5;
 
-% Plots
-%
-
 % Mini-batch size
 miniBatchSize = 128;
 
 % Number of epochs
 maxEpochs = 100; % 1000
 
-% Validation (TODO - note that it results in longer training times)
-    % 
-    % validationData = {XValidation,TValidation};
-    % validationFrequency = 50;
-
-    % Early stopping
-    % validationPatience = 5;
+% Early stopping
+validationPatience = Inf;
 
 % L2 regularisation (TOCONSIDER)
 
@@ -133,14 +130,19 @@ squaredGradientDecayFactor = 0.999;
 %% Train model
 % Train the model using a custom training loop.
 
-% Preprocess the data for training:
+% Prepare the training and validation data:
 % The 'minibatchqueue' function processes and manages mini-batches of data
 % for training. For each mini-batch, the 'minibatchqueue' object returns
 % four output arguments: the source sequences, the target sequences, the
 % lengths of all source sequences in the mini-batch, and the sequence mask
 % of the target sequences.
 numMiniBatchOutputs = 4;
-mbq = minibatchqueue(dsTrain, ...
+mbq_train = minibatchqueue(dsTrain, ...
+    numMiniBatchOutputs, ...
+    MiniBatchSize=miniBatchSize, ...
+    MiniBatchFcn=@(x,t) preprocessMiniBatch(x,t,inputSize,outputSize));
+
+mbq_val = minibatchqueue(dsVal, ...
     numMiniBatchOutputs, ...
     MiniBatchSize=miniBatchSize, ...
     MiniBatchFcn=@(x,t) preprocessMiniBatch(x,t,inputSize,outputSize));
@@ -152,13 +154,31 @@ trailingAvgSq = [];
 % Calculate the total number of iterations for the training progress monitor
 numObservationsTrain = numel(X_train);
 numIterationsPerEpoch = ceil(numObservationsTrain / miniBatchSize);
-numIterations = maxEpochs * numIterationsPerEpoch;
+maxIterations = maxEpochs * numIterationsPerEpoch;
 
-% Initialise the training progress monitor
-monitor = trainingProgressMonitor( ...
-    Metrics="Loss", ...
-    Info=["Epoch","ExecutionEnvironment","Iteration","LearningRate"], ...
-    XLabel="Iteration");
+% Calculate the validation frequency (evenly distribute)
+numObservationsVal = numel(X_val);
+numIterationsPerEpochVal = ceil(numObservationsVal / miniBatchSize);
+validationFrequency = ceil(numIterationsPerEpoch / numIterationsPerEpochVal);
+
+% Initialise the variables for early stopping
+earlyStop = false; % Initialise the early stopping flag
+if isfinite(validationPatience)
+    validationLosses = inf(1,validationPatience); % Losses to compare
+end
+
+% Initialise and prepare the training progress monitor
+monitor = trainingProgressMonitor;
+
+monitor.Metrics = ["TrainingLoss","ValidationLoss"];
+
+groupSubPlot(monitor,"Loss",["TrainingLoss","ValidationLoss"]);
+
+monitor.Info = ["LearningRate","Epoch","Iteration","ExecutionEnvironment"];
+
+monitor.XLabel = "Iteration";
+monitor.Status = "Configuring";
+monitor.Progress = 0;
 
 % Select the execution environment
 executionEnvironment = "auto";
@@ -168,13 +188,16 @@ else
     updateInfo(monitor,ExecutionEnvironment="CPU");
 end
 
-% Train the model. For each epoch:
-% 1) Shuffle the data and loop over mini-batches of data. For each
-% mini-batch:
+% Train the model using a custom training loop. For each epoch:
+% 1) Shuffle the training data, reset the validation data and loop over
+% mini-batches of training data. For each mini-batch:
     % 1.1) Evaluate the model loss and gradients
-    % 1.2) Update the encoder and decoder model parameters using the 'adamupdate'
-    % function
-    % 1.3) Update the training progress monitor
+    % 1.2) Update the encoder and decoder model parameters using the
+    % 'adamupdate' function
+    % 1.3) Record and plot the training loss
+    % 1.4) Update the training progress monitor
+    % 1.5) Record and plot the validation loss
+    % 1.6) Update the progress percentage
 % 2) Determine the learning rate for the piecewise learning rate schedule
 % 3) Stop training when the 'Stop' property of the training progress
 % monitor is true
@@ -188,18 +211,21 @@ monitor.Status = "Running";
 while epoch < maxEpochs && ~monitor.Stop
     epoch = epoch + 1;
 
-    % Shuffle data/Reset data
-    shuffle(mbq); % reset(mbq);
+    % Shuffle training mini-batch queues
+    shuffle(mbq_train);
+
+    % Reset validation mini-batch queues
+    reset(mbq_val);
 
     % Loop over mini-batches
-    while hasdata(mbq) && ~monitor.Stop
+    while hasdata(mbq_train) && ~earlyStop && ~monitor.Stop
         iteration = iteration + 1;
 
         % Read mini-batch of data
-        [X,T,sequenceLengthsSource,maskTarget] = next(mbq);
+        [X,T,sequenceLengthsSource,maskTarget] = next(mbq_train);
 
         % Evaluate the model loss and gradients
-        [loss,gradients] = dlfeval(@modelLoss,parameters,X,T, ...
+        [lossTrain,gradients] = dlfeval(@modelLoss,parameters,X,T, ...
             sequenceLengthsSource,maskTarget,dropout);
 
         % Update the model parameters using the ADAM optimisation algorithm
@@ -208,15 +234,55 @@ while epoch < maxEpochs && ~monitor.Stop
             learnRate,gradientDecayFactor,squaredGradientDecayFactor);
 
         % Normalise the loss by sequence length
-        loss = loss ./ size(T,3);
+        lossTrain = lossTrain ./ size(T,3);
+
+        % Record training loss
+        recordMetrics(monitor,iteration,TrainingLoss=lossTrain);
 
         % Update the training progress monitor
-        recordMetrics(monitor,iteration,Loss=loss);
         updateInfo(monitor, ...
-            Epoch=string(epoch) + " of " + string(maxEpochs), ...
             LearningRate=learnRate, ...
-            Iteration=string(iteration) + " of " + string(numIterations));
-        monitor.Progress = 100 * iteration / numIterations;
+            Epoch=string(epoch) + " of " + string(maxEpochs), ...
+            Iteration=string(iteration) + " of " + string(maxIterations));
+
+        % Record validation loss
+        if iteration == 1 || mod(iteration,validationFrequency) == 0
+            % Read mini-batch of data
+            [X,T,~,~] = next(mbq_val);
+
+            % Encode
+            sequenceLengths = []; % No masking
+            [Z,hiddenState] = modelEncoder(parameters.encoder,X,sequenceLengths);
+
+            % Decoder predictions
+            dropout = 0;
+            doTeacherForcing = false;
+            sequenceLength = size(X,3); % Sequence length to predict
+            Y = decoderPredictions(parameters.decoder,Z,T,hiddenState, ...
+                dropout,doTeacherForcing,sequenceLength);
+
+            % Compute loss
+            lossVal = huber(Y,T,DataFormat="CBT");
+
+            % Normalise the loss by sequence length
+            lossVal = lossVal ./ size(T,3);
+
+            % Record validation loss
+            recordMetrics(monitor,iteration,ValidationLoss=lossVal);
+
+            % Check for early stopping
+            if isfinite(validationPatience)
+                validationLosses = [validationLosses lossVal];
+                if min(validationLosses) == validationLosses(1)
+                    earlyStop = true;
+                else
+                    validationLosses(1) = [];
+                end
+            end
+        end
+
+        % Update progress percentage
+        monitor.Progress = 100 * iteration / maxIterations;
     end
 
     % Drop the learn rate if epoch is a multiple of 'learnRateDropPeriod'
@@ -233,13 +299,6 @@ else
 end
 
 %% Test model
-% Create arrayDatastore objects from the source and target data
-dsXTest = arrayDatastore(X_test,OutputType="same");
-dsTTest = arrayDatastore(T_test,OutputType="same");
-
-% Combine them to create a CombinedDatastore object
-dsTest = combine(dsXTest,dsTTest);
-
 % Preprocess the data
 mbq_test = minibatchqueue(dsTest, ...
     numMiniBatchOutputs, ...
