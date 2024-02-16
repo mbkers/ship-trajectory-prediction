@@ -167,6 +167,10 @@ if isfinite(validationPatience)
     validationLosses = inf(1,validationPatience); % Losses to compare
 end
 
+% Initialise tracking for the best model
+bestValidationLoss = inf;
+bestModelParameters = parameters;
+
 % Initialise and prepare the training progress monitor
 monitor = trainingProgressMonitor;
 
@@ -197,7 +201,9 @@ end
     % 1.3) Record and plot the training loss
     % 1.4) Update the training progress monitor
     % 1.5) Record and plot the validation loss
-    % 1.6) Update the progress percentage
+    % 1.6) Check for early stopping
+    % 1.7) Update best model if current model is better
+    % 1.8) Update the progress percentage
 % 2) Determine the learning rate for the piecewise learning rate schedule
 % 3) Stop training when the 'Stop' property of the training progress
 % monitor is true
@@ -245,7 +251,7 @@ while epoch < maxEpochs && ~monitor.Stop
             Epoch=string(epoch) + " of " + string(maxEpochs), ...
             Iteration=string(iteration) + " of " + string(maxIterations));
 
-        % Record validation loss
+        % Validation
         if iteration == 1 || mod(iteration,validationFrequency) == 0
             % Read mini-batch of data
             [X,T,~,~] = next(mbq_val);
@@ -278,6 +284,13 @@ while epoch < maxEpochs && ~monitor.Stop
                 else
                     validationLosses(1) = [];
                 end
+            end
+
+            % Update best model if current model is better
+            if extractdata(lossVal) < bestValidationLoss
+                bestValidationLoss = extractdata(lossVal);
+                bestModelParameters = parameters;
+                disp(strcat("New best validation loss at epoch ",num2str(epoch),": ",num2str(bestValidationLoss)));
             end
         end
 
