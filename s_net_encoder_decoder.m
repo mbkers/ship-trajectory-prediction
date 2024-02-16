@@ -104,11 +104,11 @@ dropout = 0.20;
 % the models.
 
 %% Specify training options
-% Learn rate (piecewise learning rate schedule)
-learnRate = 0.1;
-learnRateSchedule = "piecewise";
-learnRateDropPeriod = 10; % 100
-learnRateDropFactor = 0.5;
+% Learn rate
+learnRateInitial = 0.1; % Initial learning rate
+learnRateSchedule = "exponential decay";
+decayRate = 0.96; % Decay rate per epoch
+decaySteps = 1; % Adjust the learning rate at every epoch
 
 % Mini-batch size
 miniBatchSize = 128;
@@ -196,16 +196,16 @@ end
 % 1) Shuffle the training data, reset the validation data and loop over
 % mini-batches of training data. For each mini-batch:
     % 1.1) Evaluate the model loss and gradients
-    % 1.2) Update the encoder and decoder model parameters using the
+    % 1.2) Determine the learning rate for the learning rate schedule
+    % 1.3) Update the encoder and decoder model parameters using the
     % 'adamupdate' function
-    % 1.3) Record and plot the training loss
-    % 1.4) Update the training progress monitor
-    % 1.5) Record and plot the validation loss
-    % 1.6) Check for early stopping
-    % 1.7) Update best model if current model is better
-    % 1.8) Update the progress percentage
-% 2) Determine the learning rate for the piecewise learning rate schedule
-% 3) Stop training when the 'Stop' property of the training progress
+    % 1.4) Record and plot the training loss
+    % 1.5) Update the training progress monitor
+    % 1.6) Record and plot the validation loss
+    % 1.7) Check for early stopping
+    % 1.8) Update best model if current model is better
+    % 1.9) Update the progress percentage
+% 2) Stop training when the 'Stop' property of the training progress
 % monitor is true
 
 epoch = 0;
@@ -233,6 +233,11 @@ while epoch < maxEpochs && ~monitor.Stop
         % Evaluate the model loss and gradients
         [lossTrain,gradients] = dlfeval(@modelLoss,parameters,X,T, ...
             sequenceLengthsSource,maskTarget,dropout);
+
+        % Calculate the new learning rate with exponential decay
+        if learnRateSchedule == "exponential decay"
+            learnRate = learnRateInitial * decayRate^(epoch / decaySteps);
+        end
 
         % Update the model parameters using the ADAM optimisation algorithm
         [parameters,trailingAvg,trailingAvgSq] = adamupdate( ...
@@ -296,11 +301,6 @@ while epoch < maxEpochs && ~monitor.Stop
 
         % Update progress percentage
         monitor.Progress = 100 * iteration / maxIterations;
-    end
-
-    % Drop the learn rate if epoch is a multiple of 'learnRateDropPeriod'
-    if learnRateSchedule == "piecewise" && mod(epoch,learnRateDropPeriod) == 0
-        learnRate = learnRate * learnRateDropFactor;
     end
 end
 
