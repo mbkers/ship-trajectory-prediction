@@ -116,12 +116,8 @@ miniBatchSize = 128;
 % Number of epochs
 maxEpochs = 100; % 1000
 
-% Validation
-    % Validation frequency
-    % validationFrequency = 50;
-    
-    % Early stopping
-    % validationPatience = 5;
+% Early stopping
+validationPatience = Inf;
 
 % L2 regularisation (TOCONSIDER)
 
@@ -164,6 +160,12 @@ maxIterations = maxEpochs * numIterationsPerEpoch;
 numObservationsVal = numel(X_val);
 numIterationsPerEpochVal = ceil(numObservationsVal / miniBatchSize);
 validationFrequency = ceil(numIterationsPerEpoch / numIterationsPerEpochVal);
+
+% Initialise the variables for early stopping
+earlyStop = false; % Initialise the early stopping flag
+if isfinite(validationPatience)
+    validationLosses = inf(1,validationPatience); % Losses to compare
+end
 
 % Initialise and prepare the training progress monitor
 monitor = trainingProgressMonitor;
@@ -216,7 +218,7 @@ while epoch < maxEpochs && ~monitor.Stop
     reset(mbq_val);
 
     % Loop over mini-batches
-    while hasdata(mbq_train) && ~monitor.Stop
+    while hasdata(mbq_train) && ~earlyStop && ~monitor.Stop
         iteration = iteration + 1;
 
         % Read mini-batch of data
@@ -267,6 +269,16 @@ while epoch < maxEpochs && ~monitor.Stop
 
             % Record validation loss
             recordMetrics(monitor,iteration,ValidationLoss=lossVal);
+
+            % Check for early stopping
+            if isfinite(validationPatience)
+                validationLosses = [validationLosses lossVal];
+                if min(validationLosses) == validationLosses(1)
+                    earlyStop = true;
+                else
+                    validationLosses(1) = [];
+                end
+            end
         end
 
         % Update progress percentage
