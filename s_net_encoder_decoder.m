@@ -118,7 +118,8 @@ maxEpochs = 100; % 1000
 % Early stopping
 validationPatience = Inf;
 
-% L2 regularisation (TOCONSIDER)
+% L2 regularization
+l2Regularization = 0.0001; % L2 regularization coefficient, lambda
 
 % Gradient clipping (TOCONSIDER)
 
@@ -195,15 +196,16 @@ end
 % 1) Shuffle the training data, reset the validation data and loop over
 % mini-batches of training data. For each mini-batch:
     % 1.1) Evaluate the model loss and gradients
-    % 1.2) Determine the learning rate for the learning rate schedule
-    % 1.3) Update the encoder and decoder model parameters using the
+    % 1.2) Apply L2 regularization to the weights
+    % 1.3) Determine the learning rate for the learning rate schedule
+    % 1.4) Update the encoder and decoder model parameters using the
     % 'adamupdate' function
-    % 1.4) Record and plot the training loss
-    % 1.5) Update the training progress monitor
-    % 1.6) Record and plot the validation loss
-    % 1.7) Check for early stopping
-    % 1.8) Update best model if current model is better
-    % 1.9) Update the progress percentage
+    % 1.5) Record and plot the training loss
+    % 1.6) Update the training progress monitor
+    % 1.7) Record and plot the validation loss
+    % 1.8) Check for early stopping
+    % 1.9) Update best model if current model is better
+    % 1.10) Update the progress percentage
 % 2) Stop training when the 'Stop' property of the training progress
 % monitor is true
 
@@ -232,6 +234,9 @@ while epoch < maxEpochs && ~monitor.Stop
         % Evaluate the model loss and gradients
         [lossTrain,gradients] = dlfeval(@modelLoss,parameters,X,T, ...
             sequenceLengthsSource,maskTarget,dropout);
+
+        % Apply L2 regularization to the gradients of the weight parameters
+        gradients = applyL2Regularization(gradients,parameters,l2Regularization);
 
         % Calculate the new learning rate with exponential decay
         learnRate = learnRateInitial * decayRate^((epoch - 1) / decaySteps);
@@ -292,7 +297,8 @@ while epoch < maxEpochs && ~monitor.Stop
             if extractdata(lossVal) < bestValidationLoss
                 bestValidationLoss = extractdata(lossVal);
                 bestModelParameters = parameters;
-                disp(strcat("New best validation loss at epoch ",num2str(epoch),": ",num2str(bestValidationLoss)));
+                disp(strcat("New best validation loss at epoch ",num2str(epoch), ...
+                    " (iteration ",num2str(iteration),"): ",num2str(bestValidationLoss)));
             end
         end
 
@@ -741,3 +747,39 @@ parameter = dlarray(parameter);
 end
 
 % Code source: https://uk.mathworks.com/help/deeplearning/ug/initialize-learnable-parameters-for-custom-training-loop.html
+
+%% L2 Regularization
+% This function iterates through the parameters and gradients structures,
+% applying L2 regularization to the gradients of the weights.
+
+function gradients = applyL2Regularization(gradients,parameters,l2Regularization)
+% List of component names in network
+componentNames = fieldnames(parameters);
+
+for i = 1 : numel(componentNames)
+    componentName = componentNames{i}; % e.g., 'encoder', 'decoder'
+
+    % Get subcomponents, e.g., 'bilstm', 'attention', 'lstm', 'fc'
+    subComponentNames = fieldnames(parameters.(componentName));
+
+    for j = 1 : numel(subComponentNames)
+        subComponentName = subComponentNames{j};
+
+        % Get parameter types, e.g., 'InputWeights', 'RecurrentWeights', 'Bias'
+        paramTypes = fieldnames(parameters.(componentName).(subComponentName));
+
+        for k = 1 : numel(paramTypes)
+            paramType = paramTypes{k};
+
+            % Check if the current parameter is a weight (exclude biases)
+            if contains(paramType,"Weights")
+                % Apply L2 regularization to the gradient
+                gradients.(componentName).(subComponentName).(paramType) = ...
+                    gradients.(componentName).(subComponentName).(paramType) + ...
+                    l2Regularization * parameters.(componentName).(subComponentName).(paramType);
+            end
+            % Bias gradients are not regularized, so no else clause is needed
+        end
+    end
+end
+end
