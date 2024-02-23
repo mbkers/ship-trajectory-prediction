@@ -121,7 +121,8 @@ validationPatience = Inf;
 % L2 regularization
 l2Regularization = 0.0001; % L2 regularization coefficient, lambda
 
-% Gradient clipping (TOCONSIDER)
+% Gradient clipping (global-l2norm)
+gradientThreshold = 2;
 
 % Specify values for the ADAM optimisation algorithm
 gradientDecayFactor = 0.9;
@@ -197,15 +198,16 @@ end
 % mini-batches of training data. For each mini-batch:
     % 1.1) Evaluate the model loss and gradients
     % 1.2) Apply L2 regularization to the weights
-    % 1.3) Determine the learning rate for the learning rate schedule
-    % 1.4) Update the encoder and decoder model parameters using the
+    % 1.3) Apply the gradient threshold operation
+    % 1.4) Determine the learning rate for the learning rate schedule
+    % 1.5) Update the encoder and decoder model parameters using the
     % 'adamupdate' function
-    % 1.5) Record and plot the training loss
-    % 1.6) Update the training progress monitor
-    % 1.7) Record and plot the validation loss
-    % 1.8) Check for early stopping
-    % 1.9) Update best model if current model is better
-    % 1.10) Update the progress percentage
+    % 1.6) Record and plot the training loss
+    % 1.7) Update the training progress monitor
+    % 1.8) Record and plot the validation loss
+    % 1.9) Check for early stopping
+    % 1.10) Update best model if current model is better
+    % 1.11) Update the progress percentage
 % 2) Stop training when the 'Stop' property of the training progress
 % monitor is true
 
@@ -237,6 +239,9 @@ while epoch < maxEpochs && ~monitor.Stop
 
         % Apply L2 regularization to the gradients of the weight parameters
         gradients = applyL2Regularization(gradients,parameters,l2Regularization);
+
+        % Apply the gradient threshold operation
+        gradients = thresholdGlobalL2Norm(gradients,gradientThreshold);
 
         % Calculate the new learning rate with exponential decay
         learnRate = learnRateInitial * decayRate^((epoch - 1) / decaySteps);
@@ -748,7 +753,7 @@ end
 
 % Code source: https://uk.mathworks.com/help/deeplearning/ug/initialize-learnable-parameters-for-custom-training-loop.html
 
-%% L2 Regularization
+%% L2 regularization
 % This function iterates through the parameters and gradients structures,
 % applying L2 regularization to the gradients of the weights.
 
@@ -779,6 +784,48 @@ for i = 1 : numel(componentNames)
                     l2Regularization * parameters.(componentName).(subComponentName).(paramType);
             end
             % Bias gradients are not regularized, so no else clause is needed
+        end
+    end
+end
+end
+
+%% Gradient clipping
+% This function first computes the global L2 norm of all gradients in the
+% structure by iterating through each field and subfield(s), summing the
+% square of all gradient elements, and taking the square root of the total.
+% If the global L2 norm exceeds the specified gradientThreshold, each
+% gradient is scaled down by the same factor (normScale) to ensure the
+% global L2 norm after scaling is equal to the threshold.
+
+function gradients = thresholdGlobalL2Norm(gradients,gradientThreshold)
+
+globalL2Norm = 0;
+
+% Calculate global L2 norm
+fieldNames = fieldnames(gradients);
+for i = 1 : numel(fieldNames)
+    subFieldNames = fieldnames(gradients.(fieldNames{i}));
+    for j = 1 : numel(subFieldNames)
+        subSubFieldNames = fieldnames(gradients.(fieldNames{i}).(subFieldNames{j}));
+        for k = 1 : numel(subSubFieldNames)
+            gradientValues = gradients.(fieldNames{i}).(subFieldNames{j}).(subSubFieldNames{k});
+            globalL2Norm = globalL2Norm + sum(gradientValues(:).^2);
+        end
+    end
+end
+globalL2Norm = sqrt(globalL2Norm);
+
+% Scale gradients if global L2 norm exceeds the threshold
+if globalL2Norm > gradientThreshold
+    normScale = gradientThreshold / globalL2Norm;
+    for i = 1 : numel(fieldNames)
+        subFieldNames = fieldnames(gradients.(fieldNames{i}));
+        for j = 1 : numel(subFieldNames)
+            subSubFieldNames = fieldnames(gradients.(fieldNames{i}).(subFieldNames{j}));
+            for k = 1 : numel(subSubFieldNames)
+                gradients.(fieldNames{i}).(subFieldNames{j}).(subSubFieldNames{k}) = ...
+                    gradients.(fieldNames{i}).(subFieldNames{j}).(subSubFieldNames{k}) * normScale;
+            end
         end
     end
 end
