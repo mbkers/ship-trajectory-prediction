@@ -104,9 +104,8 @@ dropout = 0.20;
 % the models.
 
 %% Specify training options
-% Learn rate
+% Learning rate
 learnRateInitial = 0.1; % Initial learning rate
-learnRateSchedule = "exponential decay";
 decayRate = 0.96; % Decay rate per epoch
 decaySteps = 1; % Adjust the learning rate at every epoch
 
@@ -235,9 +234,7 @@ while epoch < maxEpochs && ~monitor.Stop
             sequenceLengthsSource,maskTarget,dropout);
 
         % Calculate the new learning rate with exponential decay
-        if learnRateSchedule == "exponential decay"
-            learnRate = learnRateInitial * decayRate^(epoch / decaySteps);
-        end
+        learnRate = learnRateInitial * decayRate^((epoch - 1) / decaySteps);
 
         % Update the model parameters using the ADAM optimisation algorithm
         [parameters,trailingAvg,trailingAvgSq] = adamupdate( ...
