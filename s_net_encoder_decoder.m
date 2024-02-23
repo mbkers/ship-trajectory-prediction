@@ -122,7 +122,7 @@ validationPatience = Inf;
 l2Regularization = 0.0001; % L2 regularization coefficient, lambda
 
 % Gradient clipping (global-l2norm)
-gradientThreshold = 2;
+gradientThreshold = 10;
 
 % Specify values for the ADAM optimisation algorithm
 gradientDecayFactor = 0.9;
@@ -198,7 +198,7 @@ end
 % mini-batches of training data. For each mini-batch:
     % 1.1) Evaluate the model loss and gradients
     % 1.2) Apply L2 regularization to the weights
-    % 1.3) Apply the gradient threshold operation
+    % 1.3) Apply the gradient threshold operation (if needed)
     % 1.4) Determine the learning rate for the learning rate schedule
     % 1.5) Update the encoder and decoder model parameters using the
     % 'adamupdate' function
