@@ -113,7 +113,7 @@ decaySteps = 1; % Adjust the learning rate at every epoch
 miniBatchSize = 128;
 
 % Number of epochs
-maxEpochs = 100; % 1000
+maxEpochs = 100;
 
 % Early stopping
 validationPatience = Inf;
@@ -169,7 +169,7 @@ if isfinite(validationPatience)
 end
 
 % Initialise tracking for the best model
-bestValidationLoss = inf;
+bestValidationLoss = Inf;
 bestModelParameters = parameters;
 
 % Initialise and prepare the training progress monitor
