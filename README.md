@@ -88,6 +88,7 @@ Furthermore, the [s_net_encoder_decoder.m](s_net_encoder_decoder.m) script inclu
 6. Specify training options
 7. Train model
    <!-- - The model is trained using an exponential decay learning rate schedule.
+   <!-- - During training, after computing the model loss and gradients, the global L2 norm gradient clipping method/gradient threshold method is applied to the gradients.
    <!-- - The model is also validated during training by setting aside a held-out validation dataset and tested/evaluating how well the model performs on that data. -->
 8. Test model <!-- The model is evaluated. -->
 9. Make predictions (example)
