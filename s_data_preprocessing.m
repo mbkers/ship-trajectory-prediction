@@ -72,7 +72,7 @@ for seq_idx = 1 : numel(u_mmsi)
     ais_sseqs = cat(1,ais_sseqs,ais_sseq);
 end
 
-%% Resample subsequences - UPDATE
+%% Resample subsequences
 % in: ais_sseqs [cell array of tables]
 % out: ais_sseqs [cell array of tables]
 
@@ -357,6 +357,9 @@ end
 
 function bearing_implied = bearingImplied(lat,lon,cog)
 %bearingImplied Calculate the implied bearing (deg) from lat and lon.
+%   The bearing (azimuth) is the angle a line makes with a meridian (line
+%   of longitude), measured on a sphere in degrees clockwise from north
+%   (ranging from 0 to 360). See the MATLAB functions 'distance' and 'azimuth'.
 %
 %   BEARING_IMPLIED = BEARINGIMPLIED(LAT,LON,COG)
 %       Inputs: LAT [double], LON [double] and COG [double]
