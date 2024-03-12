@@ -117,29 +117,7 @@ The LSTM output follows a dropout layer before being concatenated with the conte
 
 The model is trained using the [Huber loss](https://uk.mathworks.com/help/deeplearning/ref/dlarray.huber.html) between predicted and target sequences from the training set. The model is then evaluated using the mean and max great circle distance between predicted and target sequences from the test set. Using the Huber loss during training and a physical distance (like the great circle distance) for evaluation combines the benefits of a robust training process with an evaluation metric that provides a direct real-world interpretation of the model’s performance.  <!-- Mean Absolute Error (MAE) loss -->
 
-Moreover, a prediction time of 2.5 hours is specified in the following results. The training settings can be found in the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m).
-
-### Quantitative results:
-
-<img src="/assets/images/plot_gc_dist.png" width="500"> <!-- ![Plot of mean great circle distance.](/assets/images/plot_gc_dist_mean.png) -->
-
-The histograms show the mean and max great circle distance between predicted and target sequences on the test set (1802 (sub)sequences in total). The mode error is 1-2 km and the overall mean error, often referred to as the grand mean or pooled mean error, is 3.59 km and 7.22 km for the mean and max great circle distance, respectively.
-
-### Qualitative results:
-
-<img src="/assets/images/fig_qual_1.png" width="225"> <img src="/assets/images/fig_qual_2.png" width="225"> <img src="/assets/images/fig_qual_3.png" width="225"> <img src="/assets/images/fig_qual_4.png" width="225">
-
-<!-- ![Straight line trajectory.](/assets/images/fig_qual_1.png) ![Straight line trajectory.](/assets/images/fig_qual_2.png) ![Curved trajectory.](/assets/images/fig_qual_3.png) ![Curved trajectory.](/assets/images/fig_qual_4.png) -->
-
-### Qualitative results (high error examples):
-
-<img src="/assets/images/fig_qual_high_error_1.png" width="225"> <img src="/assets/images/fig_qual_high_error_2.png" width="225">
-
-In general, the model demonstrates satisfactory performance for common types of motion; however, there are a small number of instances where the model fails to accurately predict the true trajectory. These instances are currently being scrutinised, and it is suspected that they may be attributed to inaccuracies in the data preprocessing.
-
-## Runtime
-
-The total training time for 100 epochs was approximately 1 hour after running on an NVIDIA GeForce RTX 3080 with 10 GB of memory.
+**For detailed results and associated data for each version of our project, please see the [Releases page](https://github.com/mbkers/ship-trajectory-prediction/releases).**
 
 ## Limitations
 
