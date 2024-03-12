@@ -59,18 +59,20 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This s
    - The subsequences are resampled to regularly spaced time intervals by interpolating the data values.
 5. Transform features:
    - A feature transformation is done to detrend the data (Chen et al., [2020](https://doi.org/10.3390/ijgi9020116)). Specifically, the difference between consecutive observations is calculated for each feature. The transformed features are named similarly to the original ones, but with a delta symbol (Δ) or suffix "_diff" added to indicate the difference calculation, for example, the transformation of 'lat' (latitude) becomes 'Δlat' or 'lat_diff'.
-6. Filter subsequences by motion pattern:
-   - The subsequences are filtered according to whether they intersect a set of Polygonal Geographical Areas (PGAs) (Capobianco et al., [2021](https://doi.org/10.1109/TAES.2021.3096873)), which can be considered as a type of clustering method.
-7. Apply a sliding window:
+6. Exclude empty and single-entry subsequences
+7. Exclude outliers:
+   - An unsupervised anomaly detection method is applied to the subsequences to identify and exclude outliers. Specifically, the isolation forest algorithm is used to identify and remove anomalies from the dataset with minimal prior knowledge about the data. This step helps prevent these irregular data points from distorting analysis or model training.
+8. Visualise subsequences
+9. Apply sliding window:
    - A sliding window technique is applied to the subsequences, producing extra sequences from each one (these could be termed as "subsubsequences"). These generated sequences then serve as the input and response data for creating the model. Specifically, for each subsequence an input window and a response window of equal size are created. The windows are then progressively shifted by a specified time step. An illustrative example of this process is provided below:
 
      <img src="/assets/images/sliding_window.png" width="500"> <!-- ![Sliding window example.](/assets/images/sliding_window.png) -->
 
-8. Prepare training, validation and test data splits:
+10. Prepare training, validation and test data splits:
    - The input and response features are selected. Currently, `lat_diff` and `lon_diff` are selected from the available features. <!-- which includes `lat`, `lon`, `speed_implied`, `bearing_implied`, `lat_diff`, `lon_diff`, `speed_implied_diff` and `bearing_implied_diff`. -->
    - The data is partitioned into training (80%), validation (10%) and test (10%) sets.
    - Additionally, the data is rescaled to the range [-1,1].
-9. Save data variables
+11. Save data variables
 
 Secondly, run the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) which creates, trains and tests a recurrent sequence-to-sequence encoder-decoder model with attention. The encoder-decoder network architecture is detailed in the [Model details](#model-details) section.
 
