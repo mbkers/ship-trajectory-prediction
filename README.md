@@ -69,9 +69,9 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This s
      <img src="/assets/images/sliding_window.png" width="500"> <!-- ![Sliding window example.](/assets/images/sliding_window.png) -->
 
 10. Prepare training, validation and test data splits:
-   - The input and response features are selected. Currently, `lat_diff` and `lon_diff` are selected from the available features. <!-- which includes `lat`, `lon`, `speed_implied`, `bearing_implied`, `lat_diff`, `lon_diff`, `speed_implied_diff` and `bearing_implied_diff`. -->
-   - The data is partitioned into training (80%), validation (10%) and test (10%) sets.
-   - Additionally, the data is rescaled to the range [-1,1].
+    - The input and response features are selected. Currently, `lat_diff` and `lon_diff` are selected from the available features. <!-- which includes `lat`, `lon`, `speed_implied`, `bearing_implied`, `lat_diff`, `lon_diff`, `speed_implied_diff` and `bearing_implied_diff`. -->
+    - The data is partitioned into training (80%), validation (10%) and test (10%) sets.
+    - Additionally, the data is rescaled to the range [-1,1].
 11. Save data variables
 
 Secondly, run the script [s_net_encoder_decoder.m](s_net_encoder_decoder.m) which creates, trains and tests a recurrent sequence-to-sequence encoder-decoder model with attention. The encoder-decoder network architecture is detailed in the [Model details](#model-details) section.
@@ -117,12 +117,11 @@ The LSTM output follows a dropout layer before being concatenated with the conte
 
 The model is trained using the [Huber loss](https://uk.mathworks.com/help/deeplearning/ref/dlarray.huber.html) between predicted and target sequences from the training set. The model is then evaluated using the mean and max great circle distance between predicted and target sequences from the test set. Using the Huber loss during training and a physical distance (like the great circle distance) for evaluation combines the benefits of a robust training process with an evaluation metric that provides a direct real-world interpretation of the model’s performance.  <!-- Mean Absolute Error (MAE) loss -->
 
-**For detailed results and associated data for each version of our project, please see the [Releases page](https://github.com/mbkers/ship-trajectory-prediction/releases).**
+**For detailed results and associated data for each version of our project, please see the [Releases page](https://github.com/mbkers/ship-trajectory-prediction/releases).**
 
 ## Limitations
 
 Known limitations include:
-
 - Sensitivity to the training dataset: The model's performance may be influenced by the composition and quality of the training data.
 - Geographic and vessel type specificity: The model has been trained solely on cargo vessel types from a particular geographic region, which may restrict its generalisability to other vessel types and regions.
 
