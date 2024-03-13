@@ -61,7 +61,7 @@ Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This s
    - A feature transformation is done to detrend the data (Chen et al., [2020](https://doi.org/10.3390/ijgi9020116)). Specifically, the difference between consecutive observations is calculated for each feature. The transformed features are named similarly to the original ones, but with a delta symbol (Δ) or suffix "_diff" added to indicate the difference calculation, for example, the transformation of 'lat' (latitude) becomes 'Δlat' or 'lat_diff'.
 6. Exclude empty and single-entry subsequences
 7. Exclude outliers:
-   - An unsupervised anomaly detection method is applied to the subsequences to identify and exclude outliers. Specifically, the isolation forest algorithm is used to identify and remove anomalies from the dataset with minimal prior knowledge about the data. This step helps prevent these irregular data points from distorting analysis or model training.
+   - An unsupervised anomaly detection method is applied to the subsequences to detect and exclude outliers. Specifically, the isolation forest algorithm is used to detect and remove anomalies from the dataset. This step helps prevent outliers from distorting model training and testing.
 8. Visualise subsequences
 9. Apply sliding window:
    - A sliding window technique is applied to the subsequences, producing extra sequences from each one (these could be termed as "subsubsequences"). These generated sequences then serve as the input and response data for creating the model. Specifically, for each subsequence an input window and a response window of equal size are created. The windows are then progressively shifted by a specified time step. An illustrative example of this process is provided below:
