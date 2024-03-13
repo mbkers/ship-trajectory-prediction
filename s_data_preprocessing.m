@@ -311,11 +311,13 @@ end
 X_test = cellfun(@transpose,X_test,"UniformOutput",false);
 T_test = cellfun(@transpose,T_test,"UniformOutput",false);
 
-%% Save data variables
+%% Save all variables from workspace
+save("s_data_preprocessing_workspace.mat")
+
+%% Save only required variables from workspace
 save("s_data_preprocessing_variables.mat", ...
-    "ais_train","ais_val","ais_test","X_train","T_train", ...
-    "X_val","T_val","X_test","T_test","l","u","min_X","max_X", ...
-    "min_T","max_T")
+    "ais_test","X_train","T_train","X_val","T_val","X_test","T_test", ...
+    "l","u","min_X","max_X","min_T","max_T") % "ais_train","ais_val",
 
 %% Supporting local functions
 function vesselTypeNames = convertVesselTypeCodes(vesselTypeCodes)
