@@ -5,13 +5,13 @@ clear
 clc
 
 %% Import data
-filename = "AIS_169643192171262183_6652-1696431926223.csv";
+filename = "AIS_169884559859562343_5169-1698845599902.csv";
 ais = f_import_mc_csv_v2023(filename);
 
 % Convert VesselType codes to names
 ais.vessel_type = convertVesselTypeCodes(ais.vessel_type);
 
-%% Missing and invalid data
+%% Manage missing and invalid data
 % in: ais [table]
 % out: ais [table]
 
@@ -38,7 +38,7 @@ ais = ais(ais.vessel_type == "Cargo",:);
 % Sort the rows of the table
 ais = sortrows(ais,{'mmsi','datetime'},'ascend');
 
-%% Aggregate data into sequences based on MMSI number
+%% Aggregate data into sequences
 % in: ais [table]
 % out: ais_sseqs [cell array of tables]
 
@@ -110,7 +110,7 @@ for sseq_idx = 1 : numel(ais_sseqs)
     ais_sseqs{sseq_idx} = timetable2table(ais_sseq_tt);
 end
 
-%% Feature transformation
+%% Transform features
 for sseq_idx = 1 : numel(ais_sseqs)
     % Pass to the next iteration if size(subsequence) < 2
     if size(ais_sseqs{sseq_idx},1) < 2
@@ -126,26 +126,69 @@ for sseq_idx = 1 : numel(ais_sseqs)
 end
 
 % Remove empty subsequences
-ais_sseqs_empty = cellfun(@isempty,ais_sseqs);
-ais_sseqs(ais_sseqs_empty) = [];
+% ais_sseqs_empty = cellfun(@isempty,ais_sseqs);
+% ais_sseqs(ais_sseqs_empty) = [];
 
-%% Filter subsequences by motion pattern
+%% Exclude empty and single-entry subsequences
 % in: ais_sseqs [cell array of tables]
 % out: ais_sseqs [cell array of tables]
 
-% Define a set of polygonal geographical areas (PGAs)
-poly_A = [36.0 36.5; -76 -75];
-poly_B = [34.2 34.8; -77 -76];
+% Identify subsequences with fewer than two entries
+is_empty_or_single = cellfun(@(x) istable(x) && height(x) < 2,ais_sseqs);
 
-% Select only the subsequences that intersect the PGAs
-tf = false(size(ais_sseqs));
-for sseq_idx = 1 : numel(ais_sseqs)
-    tf(sseq_idx) = any(ingeoquad(ais_sseqs{sseq_idx}.lat,ais_sseqs{sseq_idx}.lon,poly_A(1,:),poly_A(2,:))) & ...
-        any(ingeoquad(ais_sseqs{sseq_idx}.lat,ais_sseqs{sseq_idx}.lon,poly_B(1,:),poly_B(2,:)));
-end
+% Remove subsequences with fewer than two entries from the cell array
+ais_sseqs = ais_sseqs(~is_empty_or_single);
 
-% Filter subsequences
-ais_sseqs = ais_sseqs(tf);
+%% Exclude outliers
+% in: ais_sseqs [cell array of tables]
+% out: ais_sseqs [cell array of tables]
+
+% Concatenate features from all subsequences
+    % Preallocate variables to hold concatenated data and indices
+    total_rows = sum(cellfun(@(x) size(x,1),ais_sseqs));
+    total_cols = 2; % For 'lat_diff' and 'lon_diff'
+    data_global = zeros(total_rows,total_cols);
+    sseq_indices = zeros(total_rows,1); % To track the origin subsequence
+
+    current_idx = 1;
+    for sseq_idx = 1 : numel(ais_sseqs)
+        % Retrieve a subsequence from the cell array
+        ais_sseq = ais_sseqs{sseq_idx};
+        data_subset = table2array(ais_sseq(:,["lat_diff" "lon_diff"]));
+        num_rows = size(data_subset,1);
+
+        % Concatenate the data
+        data_global(current_idx:(current_idx + num_rows - 1),:) = data_subset;
+
+        % Record the subsequence index for each row
+        sseq_indices(current_idx:(current_idx + num_rows - 1)) = sseq_idx;
+
+        % Update 'current_idx' for the next iteration
+        current_idx = current_idx + num_rows;
+    end
+
+% Apply isolation forest
+    % Specify the fraction of outliers in the data
+    contamination_fraction = 0.05;
+
+    % Detect outliers using an isolation forest
+    rng("default") % For reproducibility
+    [forest,tf_forest,s_forest] = iforest(data_global, ...
+        ContaminationFraction=contamination_fraction);
+
+    % Plot a histogram of the score values
+    figure
+    histogram(s_forest,Normalization="probability")
+    xline(forest.ScoreThreshold,"k-", ...
+        join(["Threshold =" forest.ScoreThreshold]))
+    title("Histogram of Anomaly Scores for Isolation Forest")
+
+% Trace outliers back to original subsequences
+    % Find which subsequences contain outliers
+    outlier_indices = unique(sseq_indices(tf_forest));
+
+    % Remove subsequences containing outliers
+    ais_sseqs(outlier_indices) = [];
 
 %% Visualise subsequences
 % Plot the subsequences
@@ -161,7 +204,7 @@ vessel_type = cellfun(@(tbl) tbl.vessel_type(1),ais_sseqs,'UniformOutput',false)
 vessel_type = cat(1,vessel_type{:});
 tabulate(vessel_type)
 
-%% Sliding window
+%% Apply sliding window
 % in: ais_sseqs [cell array of tables]
 % out: input_seq, response_seq [cell array of tables]
 
@@ -268,11 +311,13 @@ end
 X_test = cellfun(@transpose,X_test,"UniformOutput",false);
 T_test = cellfun(@transpose,T_test,"UniformOutput",false);
 
-%% Save data
+%% Save all variables from workspace
+save("s_data_preprocessing_workspace.mat")
+
+%% Save only required variables from workspace
 save("s_data_preprocessing_variables.mat", ...
-    "ais_train","ais_val","ais_test","X_train","T_train", ...
-    "X_val","T_val","X_test","T_test","l","u","min_X","max_X", ...
-    "min_T","max_T")
+    "ais_test","X_train","T_train","X_val","T_val","X_test","T_test", ...
+    "l","u","min_X","max_X","min_T","max_T") % "ais_train","ais_val",
 
 %% Supporting local functions
 function vesselTypeNames = convertVesselTypeCodes(vesselTypeCodes)
