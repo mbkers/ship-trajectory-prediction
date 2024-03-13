@@ -5,7 +5,7 @@ clear
 clc
 
 %% Import data
-filename = "AIS_169643192171262183_6652-1696431926223.csv";
+filename = "AIS_169884559859562343_5169-1698845599902.csv";
 ais = f_import_mc_csv_v2023(filename);
 
 % Convert VesselType codes to names
