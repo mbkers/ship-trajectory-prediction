@@ -144,20 +144,27 @@ ais_sseqs = ais_sseqs(~is_empty_or_single);
 % out: ais_sseqs [cell array of tables]
 
 % Concatenate features from all subsequences
-    % Initialise variables to hold concatenated data and indices
-    data_global = [];
-    table_indices = [];
+    % Preallocate variables to hold concatenated data and indices
+    total_rows = sum(cellfun(@(x) size(x,1),ais_sseqs));
+    total_cols = 2; % For 'lat_diff' and 'lon_diff'
+    data_global = zeros(total_rows,total_cols);
+    sseq_indices = zeros(total_rows,1); % To track the origin subsequence
 
+    current_idx = 1;
     for sseq_idx = 1 : numel(ais_sseqs)
         % Retrieve a subsequence from the cell array
         ais_sseq = ais_sseqs{sseq_idx};
         data_subset = table2array(ais_sseq(:,["lat_diff" "lon_diff"]));
+        num_rows = size(data_subset,1);
 
         % Concatenate the data
-        data_global = [data_global; data_subset];
+        data_global(current_idx:(current_idx + num_rows - 1),:) = data_subset;
 
         % Record the subsequence index for each row
-        table_indices = [table_indices; repmat(sseq_idx,size(data_subset,1),1)];
+        sseq_indices(current_idx:(current_idx + num_rows - 1)) = sseq_idx;
+
+        % Update 'current_idx' for the next iteration
+        current_idx = current_idx + num_rows;
     end
 
 % Apply isolation forest
@@ -178,7 +185,7 @@ ais_sseqs = ais_sseqs(~is_empty_or_single);
 
 % Trace outliers back to original subsequences
     % Find which subsequences contain outliers
-    outlier_indices = unique(table_indices(tf_forest));
+    outlier_indices = unique(sseq_indices(tf_forest));
 
     % Remove subsequences containing outliers
     ais_sseqs(outlier_indices) = [];
