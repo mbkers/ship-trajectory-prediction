@@ -43,13 +43,7 @@ Download or clone this repository to your machine and open it in MATLAB.
 
 Firstly, run the script [s_data_preprocessing.m](s_data_preprocessing.m). This script performs the following data preprocessing steps:
 
-1. Import data:
-   - The AIS data is originally downloaded from [Marine Cadastre](https://marinecadastre.gov/) with the following parameters:
-     - Date: 2021-04-30 to 2021-05-30
-     - Longitude limits (min to max): -78 to -74.3
-     - Latitude limits (min to max): 31.8 to 37.3
-     - The study area is the North Carolina coastline, USA. (This region is similar to the one defined in Chen et al., [2020](https://doi.org/10.3390/ijgi9020116).)
-     - For access to the original CSV file (file size: 1003.62 MB) or for any inquiries, please feel free to raise an issue in this GitHub repository.
+1. Import data
 2. Manage missing and invalid data
 3. Aggregate data into sequences:
    - The data is aggregated into sequences or trajectories based on the Maritime Mobile Service Identity (MMSI) number, which uniquely identifies a vessel.
