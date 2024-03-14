@@ -566,8 +566,8 @@ end
 end
 
 %% Decoder model function
-function [Y,context,hiddenState,attentionScores] = modelDecoder( ...
-    parameters,X,context,hiddenState,Z,dropout)
+function [Y_pi,Y_mu,Y_sigma,context,hiddenState,attentionScores] = modelDecoder( ...
+    parameters,X,context,hiddenState,Z,dropout,numMixtures,numResponses)
 
 X = dlarray(X); % needed?
 
@@ -600,6 +600,16 @@ Y = cat(1,Y,repmat(context,[1 1 sequenceLength]));
 weights = parameters.fc.Weights;
 bias = parameters.fc.Bias;
 Y = fullyconnect(Y,weights,bias,DataFormat="CBT");
+
+% Reshape Y into MDN parameters
+numTotalOutputs = numMixtures * numResponses * 3; % For pi, mu, sigma for each mixture and response
+assert(size(Y,1) == numTotalOutputs, 'Output size of the fully connected layer does not match the expected number of MDN parameters.');
+
+% Extract and reshape mixture weights, means and standard deviations
+Y_reshaped = reshape(Y,[numMixtures 3*numResponses size(Y,2) size(Y,3)]);
+Y_pi = softmax(Y_reshaped(:,1:numResponses,:,:),1); % Mixture weights with softmax
+Y_mu = Y_reshaped(:,numResponses+1:2*numResponses,:,:); % Means
+Y_sigma = exp(Y_reshaped(:,2*numResponses+1:end,:,:)); % Standard deviations with exp to ensure they are positive
 
 end
 
