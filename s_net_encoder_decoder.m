@@ -656,36 +656,78 @@ values = Z;
 end
 
 %% Decoder model predictions function
-function Y = decoderPredictions(parameters,Z,T,hiddenState,dropout, ...
-    doTeacherForcing,sequenceLength)
+% function Y = decoderPredictions(parameters,Z,T,hiddenState,dropout, ...
+%     doTeacherForcing,sequenceLength)
+% 
+% % Convert to dlarray
+% T = dlarray(T);
+% 
+% % Initialise context
+% miniBatchSize = size(T,2);
+% numHiddenUnits = size(Z,1);
+% context = zeros([numHiddenUnits miniBatchSize],"like",Z);
+% 
+% if doTeacherForcing
+%     % Forward through decoder
+%     Y = modelDecoder(parameters,T,context,hiddenState,Z,dropout);
+% else % Autoregressive decoding
+%     % Get first time step for decoder
+%     decoderInput = T(:,:,1);
+% 
+%     % Initialise output
+%     numClasses = numel(parameters.fc.Bias);
+%     Y = zeros([numClasses miniBatchSize sequenceLength],"like",decoderInput);
+% 
+%     % Loop over time steps
+%     for t = 1 : sequenceLength
+%         % Forward through decoder
+%         [Y(:,:,t),context,hiddenState] = modelDecoder(parameters, ...
+%             decoderInput,context,hiddenState,Z,dropout);
+% 
+%         % Update decoder input
+%         decoderInput = Y(:,:,t);
+%     end
+% end
+% 
+% end
 
-% Convert to dlarray
+%% Decoder model predictions function
+function [Y_pi,Y_mu,Y_sigma,context,hiddenState,attentionScores] = ...
+    decoderPredictionsMDN(parameters,Z,T,hiddenState,dropout, ...
+    doTeacherForcing,sequenceLength,numMixtures,numResponses)
+
+% Convert target data T to dlarray, if it's not already one
 T = dlarray(T);
 
-% Initialise context
+% Initialize context vector
 miniBatchSize = size(T,2);
 numHiddenUnits = size(Z,1);
 context = zeros([numHiddenUnits miniBatchSize],"like",Z);
 
+% If teacher forcing, use true target sequences T as input at each step
 if doTeacherForcing
-    % Forward through decoder
-    Y = modelDecoder(parameters,T,context,hiddenState,Z,dropout);
-else % Autoregressive decoding
-    % Get first time step for decoder
-    decoderInput = T(:,:,1);
+    [Y_pi,Y_mu,Y_sigma,context,hiddenState,attentionScores] = ...
+        modelDecoder(parameters,T,context,hiddenState,Z,dropout,numMixtures,numResponses);
+else
+    % Autoregressive decoding: use the output of the previous time step as the next input
+    decoderInput = T(:,:,1); % Initialize decoder input as the first target sequence step
 
-    % Initialise output
-    numClasses = numel(parameters.fc.Bias);
-    Y = zeros([numClasses miniBatchSize sequenceLength],"like",decoderInput);
+    % Initialize MDN outputs
+    Y_pi = zeros([numMixtures numResponses sequenceLength miniBatchSize],"like",decoderInput);
+    Y_mu = zeros([numMixtures numResponses sequenceLength miniBatchSize],"like",decoderInput);
+    Y_sigma = zeros([numMixtures numResponses sequenceLength miniBatchSize],"like",decoderInput);
 
     % Loop over time steps
     for t = 1 : sequenceLength
-        % Forward through decoder
-        [Y(:,:,t),context,hiddenState] = modelDecoder(parameters, ...
-            decoderInput,context,hiddenState,Z,dropout);
+        [Y_pi(:,:,t,:),Y_mu(:,:,t,:),Y_sigma(:,:,t,:),context,hiddenState,attentionScores] = ...
+            modelDecoder(parameters,decoderInput,context,hiddenState,Z,dropout,numMixtures,numResponses);
 
-        % Update decoder input
-        decoderInput = Y(:,:,t);
+        % Update decoder input to the mean of the mixture component with the highest weight for the next time step
+        [~,maxIdx] = max(Y_pi(:,:,t,:),[],1); % Find indices of mixtures with the highest weights
+        maxIdx = squeeze(maxIdx); % Adjust dimensions if necessary
+        for batchIdx = 1 : miniBatchSize
+            decoderInput(:,batchIdx,1) = Y_mu(maxIdx(batchIdx),:,t,batchIdx); % Update input using the mean of the selected mixture
+        end
     end
 end
 
