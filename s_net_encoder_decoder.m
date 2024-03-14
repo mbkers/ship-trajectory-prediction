@@ -75,12 +75,22 @@ dropout = 0.20;
     % 1) Initialise the weights with the Glorot initialiser
     % 2) Initialise the bias with zeros using zeros initialisation*
     % *(see the 'Supporting functions' section at the end of the script)
-    sz = [outputSize 2*numHiddenUnits];
-    numOut = outputSize;
-    numIn = 2*numHiddenUnits;
+    % sz = [outputSize 2*numHiddenUnits];
+    % numOut = outputSize;
+    % numIn = 2*numHiddenUnits;
 
-    parameters.decoder.fc.Weights = initializeGlorot(sz,numOut,numIn);
-    parameters.decoder.fc.Bias = initializeZeros([outputSize 1]);
+    % parameters.decoder.fc.Weights = initializeGlorot(sz,numOut,numIn);
+    % parameters.decoder.fc.Bias = initializeZeros([outputSize 1]);
+
+    % Specify the number of Gaussian components in the mixture
+    numGaussians = 5;
+
+    % Initialise the Mixture Density Network (MDN) parameters
+    parameters.decoder.mdn.Weights = initializeGlorot( ...
+        [numGaussians*(2*numFeatures+1) 2*numHiddenUnits], ...
+        numGaussians*(2*numFeatures+1),2*numHiddenUnits);
+    parameters.decoder.mdn.Bias = initializeZeros( ...
+        [numGaussians*(2*numFeatures+1) 1]);
 
 %% Define model function(s)
 % The 'modelEncoder' function, provided in the 'Encoder model function'
