@@ -516,23 +516,50 @@ end
 %   - decoderPredictions
 %       - modelDecoder
 
-function [loss,gradients] = modelLoss(parameters,X,T, ...
-    sequenceLengthsSource,maskTarget,dropout)
+% function [loss,gradients] = modelLoss(parameters,X,T, ...
+%     sequenceLengthsSource,maskTarget,dropout)
+% 
+% % Forward data through the model encoder
+% [Z,hiddenState] = modelEncoder(parameters.encoder,X,sequenceLengthsSource);
+% 
+% % Decoder output/predictions
+% doTeacherForcing = rand < 0.5;
+% sequenceLength = size(T,3);
+% Y = decoderPredictions(parameters.decoder,Z,T,hiddenState,dropout, ...
+%     doTeacherForcing,sequenceLength);
+% 
+% % Compute and update loss
+% loss = huber(Y,T,Mask=maskTarget,DataFormat="CBT");
+% 
+% % Compute and update gradients
+% gradients = dlgradient(loss,parameters);
+% 
+% end
+
+%% Model loss function
+function [nll,gradients] = modelLossMDN(parameters,X,T, ...
+    sequenceLengthsSource,maskTarget,dropout,numMixtures,numResponses)
 
 % Forward data through the model encoder
 [Z,hiddenState] = modelEncoder(parameters.encoder,X,sequenceLengthsSource);
 
-% Decoder output/predictions
-doTeacherForcing = rand < 0.5;
-sequenceLength = size(T,3);
-Y = decoderPredictions(parameters.decoder,Z,T,hiddenState,dropout, ...
-    doTeacherForcing,sequenceLength);
+% Decoder output/predictions with MDN adjustments
+[Y_pi,Y_mu,Y_sigma,~,~,~] = decoderPredictionsMDN(parameters.decoder,Z,T, ...
+    hiddenState,dropout,false,size(T,3),numMixtures,numResponses); % False for teacher forcing since we are directly using the MDN outputs
 
-% Compute and update loss
-loss = huber(Y,T,Mask=maskTarget,DataFormat="CBT");
+% Compute Negative Log Likelihood (NLL) for the GMM
+nll = 0;
+for i = 1 : numMixtures
+    % For each mixture, calculate the NLL
+    pd = makedist('Normal','mu',Y_mu(i,:),'sigma',Y_sigma(i,:));
+    pdf_values = pdf(pd,T);
+    nll = nll + Y_pi(i,:) .* pdf_values;
+end
+nll = -log(nll);
+nll = mean(nll,'all'); % Mean NLL over all data points
 
-% Compute and update gradients
-gradients = dlgradient(loss,parameters);
+% Ensure gradients are calculated with respect to NLL
+gradients = dlgradient(nll,parameters);
 
 end
 
@@ -603,7 +630,7 @@ Y = fullyconnect(Y,weights,bias,DataFormat="CBT");
 
 % Reshape Y into MDN parameters
 numTotalOutputs = numMixtures * numResponses * 3; % For pi, mu, sigma for each mixture and response
-assert(size(Y,1) == numTotalOutputs, 'Output size of the fully connected layer does not match the expected number of MDN parameters.');
+assert(size(Y,1) == numTotalOutputs,'Output size of the fully connected layer does not match the expected number of MDN parameters.');
 
 % Extract and reshape mixture weights, means and standard deviations
 Y_reshaped = reshape(Y,[numMixtures 3*numResponses size(Y,2) size(Y,3)]);
