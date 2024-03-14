@@ -72,24 +72,17 @@ dropout = 0.20;
 
     % Initialise the learnable parameters for the decoder fully connected
     % operation:
-    % 1) Initialise the weights with the Glorot initialiser
-    % 2) Initialise the bias with zeros using zeros initialisation*
+    % 1) Configure fully connected layer output size for the MDN
+    % 2) Initialise the weights with the Glorot initialiser
+    % 3) Initialise the bias with zeros using zeros initialisation*
     % *(see the 'Supporting functions' section at the end of the script)
-    sz = [outputSize 2*numHiddenUnits];
+    numMixtures = 5; % Number of mixture (Gaussian) components
+    sz = [numResponses*numMixtures*3 2*numHiddenUnits];
     numOut = outputSize;
     numIn = 2*numHiddenUnits;
 
     parameters.decoder.fc.Weights = initializeGlorot(sz,numOut,numIn);
-    parameters.decoder.fc.Bias = initializeZeros([outputSize 1]);
-
-    % Initialise the Mixture Density Network (MDN) parameters
-    numComponents = 5; % Number of mixture (Gaussian) components
-    sz = [numComponents*numResponses 2*numHiddenUnits];
-    numOut = numComponents*numResponses;
-    numIn = 2*numHiddenUnits;
-
-    parameters.decoder.mdn.Weights = initializeGlorot(sz,numOut,numIn);
-    parameters.decoder.mdn.Bias = initializeZeros([numOut 1]);
+    parameters.decoder.fc.Bias = initializeZeros([numResponses*numMixtures*3 1]);
 
 %% Define model function(s)
 % The 'modelEncoder' function, provided in the 'Encoder model function'
