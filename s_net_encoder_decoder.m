@@ -237,7 +237,7 @@ while epoch < maxEpochs && ~monitor.Stop
 
         % Evaluate the model loss and gradients
         [lossTrain,gradients] = dlfeval(@modelLoss,parameters,X,T, ...
-            sequenceLengthsSource,maskTarget,dropout);
+            sequenceLengthsSource,dropout,numMixtures,numResponses);
 
         % Apply L2 regularization to the gradients of the weight parameters
         gradients = applyL2Regularization(gradients,parameters,l2Regularization);
@@ -537,15 +537,17 @@ end
 % end
 
 %% Model loss function
-function [nll,gradients] = modelLossMDN(parameters,X,T, ...
-    sequenceLengthsSource,maskTarget,dropout,numMixtures,numResponses)
+function [nll,gradients] = modelLoss(parameters,X,T, ...
+    sequenceLengthsSource,dropout,numMixtures,numResponses) % ,maskTarget
 
 % Forward data through the model encoder
 [Z,hiddenState] = modelEncoder(parameters.encoder,X,sequenceLengthsSource);
 
 % Decoder output/predictions with MDN adjustments
-[Y_pi,Y_mu,Y_sigma,~,~,~] = decoderPredictionsMDN(parameters.decoder,Z,T, ...
-    hiddenState,dropout,false,size(T,3),numMixtures,numResponses); % False for teacher forcing since we are directly using the MDN outputs
+doTeacherForcing = false;
+sequenceLength = size(T,3);
+[Y_pi,Y_mu,Y_sigma,~,~,~] = decoderPredictions(parameters.decoder,Z,T, ...
+    hiddenState,dropout,doTeacherForcing,sequenceLength,numMixtures,numResponses); % False for teacher forcing since we are directly using the MDN outputs
 
 % Compute Negative Log Likelihood (NLL) for the GMM
 nll = 0;
@@ -634,7 +636,8 @@ assert(size(Y,1) == numTotalOutputs,'Output size of the fully connected layer do
 
 % Extract and reshape mixture weights, means and standard deviations
 Y_reshaped = reshape(Y,[numMixtures 3*numResponses size(Y,2) size(Y,3)]);
-Y_pi = softmax(Y_reshaped(:,1:numResponses,:,:),1); % Mixture weights with softmax
+Y_pi = softmax(Y_reshaped,'DataFormat','CBT');
+% Y_pi = softmax(Y_reshaped(:,1:numResponses,:,:),1); % Mixture weights with softmax
 Y_mu = Y_reshaped(:,numResponses+1:2*numResponses,:,:); % Means
 Y_sigma = exp(Y_reshaped(:,2*numResponses+1:end,:,:)); % Standard deviations with exp to ensure they are positive
 
@@ -693,7 +696,7 @@ end
 
 %% Decoder model predictions function
 function [Y_pi,Y_mu,Y_sigma,context,hiddenState,attentionScores] = ...
-    decoderPredictionsMDN(parameters,Z,T,hiddenState,dropout, ...
+    decoderPredictions(parameters,Z,T,hiddenState,dropout, ...
     doTeacherForcing,sequenceLength,numMixtures,numResponses)
 
 % Convert target data T to dlarray, if it's not already one
