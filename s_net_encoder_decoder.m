@@ -82,6 +82,15 @@ dropout = 0.20;
     parameters.decoder.fc.Weights = initializeGlorot(sz,numOut,numIn);
     parameters.decoder.fc.Bias = initializeZeros([outputSize 1]);
 
+    % Initialise the Mixture Density Network (MDN) parameters
+    numComponents = 5; % Number of mixture (Gaussian) components
+    sz = [numComponents*numResponses 2*numHiddenUnits];
+    numOut = numComponents*numResponses;
+    numIn = 2*numHiddenUnits;
+
+    parameters.decoder.mdn.Weights = initializeGlorot(sz,numOut,numIn);
+    parameters.decoder.mdn.Bias = initializeZeros([numOut 1]);
+
 %% Define model function(s)
 % The 'modelEncoder' function, provided in the 'Encoder model function'
 % section of the script, takes the input data, model parameters, and the
