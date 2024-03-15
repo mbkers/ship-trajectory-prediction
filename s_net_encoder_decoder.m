@@ -50,9 +50,6 @@ dropout = 0.20;
     parameters.encoder.bilstm.Bias = initializeUnitForgetGate(2*numHiddenUnits);
 
 % Initialise decoder model parameters
-    % Define the output size
-    outputSize = numResponses;
-
     % Initialise the weights of the attention mechanism with the Glorot
     % initialiser
     sz = [numHiddenUnits numHiddenUnits];
@@ -85,12 +82,16 @@ dropout = 0.20;
     % Specify the number of Gaussian components in the mixture
     numGaussians = 5;
 
-    % Initialise the Mixture Density Network (MDN) parameters
-    parameters.decoder.mdn.Weights = initializeGlorot( ...
-        [numGaussians*(2*numFeatures+1) 2*numHiddenUnits], ...
-        numGaussians*(2*numFeatures+1),2*numHiddenUnits);
-    parameters.decoder.mdn.Bias = initializeZeros( ...
-        [numGaussians*(2*numFeatures+1) 1]);
+    % Define the output size for the Mixture Density Network (MDN)
+    outputSize = numGaussians*(2*numFeatures+1);
+
+    % Initialise the MDN parameters
+    sz = [outputSize 2*numHiddenUnits];
+    numOut = outputSize;
+    numIn = 2*numHiddenUnits;
+
+    parameters.decoder.mdn.Weights = initializeGlorot(sz,numOut,numIn);
+    parameters.decoder.mdn.Bias = initializeZeros([outputSize 1]);
 
 %% Define model function(s)
 % The 'modelEncoder' function, provided in the 'Encoder model function'
@@ -151,12 +152,12 @@ numMiniBatchOutputs = 4;
 mbq_train = minibatchqueue(dsTrain, ...
     numMiniBatchOutputs, ...
     MiniBatchSize=miniBatchSize, ...
-    MiniBatchFcn=@(x,t) preprocessMiniBatch(x,t,inputSize,outputSize));
+    MiniBatchFcn=@(x,t) preprocessMiniBatch(x,t,inputSize,numResponses));
 
 mbq_val = minibatchqueue(dsVal, ...
     numMiniBatchOutputs, ...
     MiniBatchSize=miniBatchSize, ...
-    MiniBatchFcn=@(x,t) preprocessMiniBatch(x,t,inputSize,outputSize));
+    MiniBatchFcn=@(x,t) preprocessMiniBatch(x,t,inputSize,numResponses));
 
 % Initialise the parameters for the 'adamupdate' function
 trailingAvg = [];
@@ -334,7 +335,7 @@ end
 mbq_test = minibatchqueue(dsTest, ...
     numMiniBatchOutputs, ...
     MiniBatchSize=miniBatchSize, ...
-    MiniBatchFcn=@(x,t) preprocessMiniBatch(x,t,inputSize,outputSize));
+    MiniBatchFcn=@(x,t) preprocessMiniBatch(x,t,inputSize,numResponses));
 
 % Initialise the outputs
 Y_test = [];
@@ -505,14 +506,14 @@ end
 % on the GPU if one is available.
 
 function [X,T,sequenceLengthsSource,maskTarget] = preprocessMiniBatch( ...
-    X_train,T_train,inputSize,outputSize)
+    X_train,T_train,inputSize,numResponses)
 
 sequenceLengthsSource = cellfun(@(x) size(x,2),X_train);
 
 X = padsequences(X_train,2,PaddingValue=inputSize);
 X = permute(X,[1 3 2]);
 
-[T,maskTarget] = padsequences(T_train,2,PaddingValue=outputSize);
+[T,maskTarget] = padsequences(T_train,2,PaddingValue=numResponses);
 T = permute(T,[1 3 2]);
 maskTarget = permute(maskTarget,[1 3 2]);
 
@@ -574,7 +575,7 @@ end
 end
 
 %% Decoder model function
-function [Y,context,hiddenState,attentionScores] = modelDecoder( ...
+function [Y_pi,Y_mu,Y_sigma,context,hiddenState,attentionScores] = modelDecoder( ...
     parameters,X,context,hiddenState,Z,dropout)
 
 X = dlarray(X); % needed?
@@ -605,9 +606,28 @@ weights = parameters.attention.Weights;
 Y = cat(1,Y,repmat(context,[1 1 sequenceLength]));
 
 % Fully connect
-weights = parameters.fc.Weights;
-bias = parameters.fc.Bias;
-Y = fullyconnect(Y,weights,bias,DataFormat="CBT");
+% weights = parameters.fc.Weights;
+% bias = parameters.fc.Bias;
+% Y = fullyconnect(Y,weights,bias,DataFormat="CBT");
+
+% Mixture Density Network
+weights = parameters.mdn.Weights;
+bias = parameters.mdn.Bias;
+Y_mdn = fullyconnect(Y,weights,bias,DataFormat="CBT");
+
+% Split the MDN output into mixing coefficients, means, and standard deviations
+numGaussians = size(weights,1) / (2*numFeatures+1);
+splitSizes = [numGaussians numFeatures numFeatures];
+
+% Mixing coefficients
+Y_pi = Y_mdn(1:splitSizes(1),:,:);
+Y_pi = softmax(Y_pi,DataFormat="CBT");
+
+% Means
+Y_mu = Y_mdn(splitSizes(1)+1:splitSizes(1)+splitSizes(2),:,:);
+
+% Standard deviations
+Y_sigma = exp(Y_mdn(splitSizes(1)+splitSizes(2)+1:end,:,:));
 
 end
 
