@@ -531,18 +531,36 @@ function [loss,gradients] = modelLoss(parameters,X,T, ...
 % Forward data through the model encoder
 [Z,hiddenState] = modelEncoder(parameters.encoder,X,sequenceLengthsSource);
 
-% Decoder output/predictions
+% Decoder predictions
 doTeacherForcing = rand < 0.5;
 sequenceLength = size(T,3);
-Y = decoderPredictions(parameters.decoder,Z,T,hiddenState,dropout, ...
+[~,Y_pi,Y_mu,Y_sigma] = decoderPredictions(parameters.decoder,Z,T,hiddenState,dropout, ...
     doTeacherForcing,sequenceLength);
 
-% Compute and update loss
-loss = huber(Y,T,Mask=maskTarget,DataFormat="CBT");
+% Compute negative log-likelihood loss
+loss = mdnNegativeLogLikelihood(Y_pi,Y_mu,Y_sigma,T,maskTarget);
 
-% Compute and update gradients
+% Compute gradients
 gradients = dlgradient(loss,parameters);
 
+end
+
+function nll = mdnNegativeLogLikelihood(pi,mu,sigma,target,mask)
+% Compute the negative log-likelihood loss for the mixture density network
+[~, numSamples, numTimeSteps] = size(pi); % numGaussians,
+numResponses = size(target,1);
+
+% Reshape target to match the dimensions of mu and sigma
+target = reshape(target,numResponses,numSamples,numTimeSteps);
+
+% Compute the Gaussian probability density for each component
+gaussianProbabilities = normpdf(target,mu,sigma);
+
+% Compute the weighted probabilities
+weightedProbabilities = sum(pi .* gaussianProbabilities, 1);
+
+% Compute the negative log-likelihood loss
+nll = -sum(log(weightedProbabilities) .* mask, "all");
 end
 
 %% Encoder model function (BiLSTM)
@@ -647,8 +665,8 @@ values = Z;
 end
 
 %% Decoder model predictions function
-function Y = decoderPredictions(parameters,Z,T,hiddenState,dropout, ...
-    doTeacherForcing,sequenceLength)
+function [Y,Y_pi,Y_mu,Y_sigma] = decoderPredictions( ...
+    parameters,Z,T,hiddenState,dropout,doTeacherForcing,sequenceLength)
 
 % Convert to dlarray
 T = dlarray(T);
@@ -670,17 +688,22 @@ else
     % Get first time step for decoder
     decoderInput = T(:,:,1);
 
-    % Initialise output
+    % Initialise output (sampled predictions)
     Y = zeros([numResponses miniBatchSize sequenceLength],"like",decoderInput);
+
+    % Initialise MDN outputs
+    Y_pi = zeros([parameters.numGaussians miniBatchSize sequenceLength],"like",Z);
+    Y_mu = zeros([numResponses * parameters.numGaussians, miniBatchSize, sequenceLength],"like",Z);
+    Y_sigma = zeros([numResponses * parameters.numGaussians, miniBatchSize, sequenceLength],"like",Z);
 
     % Loop over time steps
     for t = 1 : sequenceLength
         % Forward through decoder
-        [Y_pi,Y_mu,Y_sigma,context,hiddenState] = modelDecoder( ...
+        [Y_pi(:,:,t),Y_mu(:,:,t),Y_sigma(:,:,t),context,hiddenState] = modelDecoder( ...
             parameters,decoderInput,context,hiddenState,Z,dropout);
 
         % Sample from the mixture of Gaussians
-        Y(:,:,t) = sampleFromMixture(Y_pi,Y_mu,Y_sigma,t);
+        Y(:,:,t) = sampleFromMixture(Y_pi(:,:,t),Y_mu(:,:,t),Y_sigma(:,:,t),t);
 
         % Update decoder input
         decoderInput = Y(:,:,t);
