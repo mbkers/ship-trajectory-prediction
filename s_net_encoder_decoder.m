@@ -634,7 +634,8 @@ bias = parameters.mdn.Bias;
 Y_mdn = fullyconnect(Y,weights,bias,DataFormat="CBT");
 
 % Split the MDN output into mixing coefficients, means, and standard deviations
-numGaussians = parameters.decoder.numGaussians; % size(weights,1) / (2*numFeatures+1)
+numGaussians = parameters.numGaussians; % size(weights,1) / (2*numFeatures+1)
+numFeatures = size(X,1);
 splitSizes = [numGaussians numFeatures numFeatures];
 
 % Mixing coefficients
