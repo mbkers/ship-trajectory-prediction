@@ -80,10 +80,10 @@ dropout = 0.20;
     % parameters.decoder.fc.Bias = initializeZeros([outputSize 1]);
 
     % Specify the number of Gaussian components in the mixture
-    numGaussians = 5;
+    parameters.decoder.numGaussians = 5;
 
     % Define the output size for the Mixture Density Network (MDN)
-    outputSize = numGaussians*(2*numFeatures+1);
+    outputSize = parameters.decoder.numGaussians*(2*numFeatures+1);
 
     % Initialise the MDN parameters
     sz = [outputSize 2*numHiddenUnits];
@@ -616,7 +616,7 @@ bias = parameters.mdn.Bias;
 Y_mdn = fullyconnect(Y,weights,bias,DataFormat="CBT");
 
 % Split the MDN output into mixing coefficients, means, and standard deviations
-numGaussians = size(weights,1) / (2*numFeatures+1);
+numGaussians = parameters.decoder.numGaussians; % size(weights,1) / (2*numFeatures+1)
 splitSizes = [numGaussians numFeatures numFeatures];
 
 % Mixing coefficients
@@ -654,31 +654,54 @@ function Y = decoderPredictions(parameters,Z,T,hiddenState,dropout, ...
 T = dlarray(T);
 
 % Initialise context
-miniBatchSize = size(T,2);
+numResponses = size(T,1);
 numHiddenUnits = size(Z,1);
+miniBatchSize = size(T,2);
 context = zeros([numHiddenUnits miniBatchSize],"like",Z);
 
 if doTeacherForcing
-    % Forward through decoder
-    Y = modelDecoder(parameters,T,context,hiddenState,Z,dropout);
-else % Autoregressive decoding
+    % Forward through decoder with teacher forcing
+    [Y_pi,Y_mu,Y_sigma] = modelDecoder(parameters,T,context,hiddenState,Z,dropout);
+
+    % Sample from the mixture of Gaussians
+    Y = sampleFromMixture(Y_pi,Y_mu,Y_sigma);
+else
+    % Autoregressive decoding
     % Get first time step for decoder
     decoderInput = T(:,:,1);
 
     % Initialise output
-    numClasses = numel(parameters.fc.Bias);
-    Y = zeros([numClasses miniBatchSize sequenceLength],"like",decoderInput);
+    Y = zeros([numResponses miniBatchSize sequenceLength],"like",decoderInput);
 
     % Loop over time steps
     for t = 1 : sequenceLength
         % Forward through decoder
-        [Y(:,:,t),context,hiddenState] = modelDecoder(parameters, ...
-            decoderInput,context,hiddenState,Z,dropout);
+        [Y_pi,Y_mu,Y_sigma,context,hiddenState] = modelDecoder( ...
+            parameters,decoderInput,context,hiddenState,Z,dropout);
+
+        % Sample from the mixture of Gaussians
+        Y(:,:,t) = sampleFromMixture(Y_pi,Y_mu,Y_sigma,t);
 
         % Update decoder input
         decoderInput = Y(:,:,t);
     end
 end
+
+% Helper function to sample from the mixture of Gaussians
+    function samples = sampleFromMixture(pi,mu,sigma,t)
+        [numGaussians,numSamples,~] = size(pi);
+
+        samples = zeros(numResponses,numSamples,1,"like",mu);
+
+        for s = 1 : numSamples
+            % Select a Gaussian component based on the mixing coefficients
+            idx = randsample(numGaussians,1,true,pi(:,s,t));
+
+            % Sample from the selected Gaussian component
+            samples(:,s,1) = mu((idx-1)*numResponses+1:idx*numResponses,s,t) + ...
+                sigma((idx-1)*numResponses+1:idx*numResponses,s,t) .* randn(numResponses,1,"like",mu);
+        end
+    end
 
 end
 
