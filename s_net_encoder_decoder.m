@@ -55,6 +55,7 @@ dropout = 0.20;
     sz = [numHiddenUnits numHiddenUnits];
     numOut = numHiddenUnits;
     numIn = numHiddenUnits;
+
     parameters.decoder.attention.Weights = initializeGlorot(sz,numOut,numIn);
 
     % Initialise the learnable parameters for the decoder LSTM operation
@@ -69,29 +70,24 @@ dropout = 0.20;
 
     % Initialise the learnable parameters for the decoder fully connected
     % operation:
-    % 1) Initialise the weights with the Glorot initialiser
-    % 2) Initialise the bias with zeros using zeros initialisation*
+    % 1) Add the Mixture Density Network (MDN) parameters
+    % 2) Initialise the weights with the Glorot initialiser
+    % 3) Initialise the bias with zeros using zeros initialisation*
     % *(see the 'Supporting functions' section at the end of the script)
-    % sz = [outputSize 2*numHiddenUnits];
-    % numOut = outputSize;
-    % numIn = 2*numHiddenUnits;
-
-    % parameters.decoder.fc.Weights = initializeGlorot(sz,numOut,numIn);
-    % parameters.decoder.fc.Bias = initializeZeros([outputSize 1]);
 
     % Specify the number of Gaussian components in the mixture
-    parameters.decoder.numGaussians = 5;
+    numGaussians = 5;
 
-    % Define the output size for the Mixture Density Network (MDN)
-    outputSize = parameters.decoder.numGaussians*(2*numFeatures+1);
+    % Define the output size for the MDN
+    outputSize = numGaussians*(2*numResponses+1);
 
     % Initialise the MDN parameters
     sz = [outputSize 2*numHiddenUnits];
     numOut = outputSize;
     numIn = 2*numHiddenUnits;
 
-    parameters.decoder.mdn.Weights = initializeGlorot(sz,numOut,numIn);
-    parameters.decoder.mdn.Bias = initializeZeros([outputSize 1]);
+    parameters.decoder.fc.Weights = initializeGlorot(sz,numOut,numIn);
+    parameters.decoder.fc.Bias = initializeZeros([outputSize 1]);
 
 %% Define model function(s)
 % The 'modelEncoder' function, provided in the 'Encoder model function'
@@ -245,7 +241,7 @@ while epoch < maxEpochs && ~monitor.Stop
         [X,T,sequenceLengthsSource,maskTarget] = next(mbq_train);
 
         % Evaluate the model loss and gradients
-        [lossTrain,gradients] = dlfeval(@modelLoss,parameters,X,T, ...
+        [lossTrain,gradients] = dlfeval(@modelLossWrapper,parameters,X,T, ...
             sequenceLengthsSource,maskTarget,dropout);
 
         % Apply L2 regularization to the gradients of the weight parameters
@@ -275,48 +271,48 @@ while epoch < maxEpochs && ~monitor.Stop
             Iteration=string(iteration) + " of " + string(maxIterations));
 
         % Validation
-        if iteration == 1 || mod(iteration,validationFrequency) == 0
-            % Read mini-batch of data
-            [X,T,~,~] = next(mbq_val);
-
-            % Encode
-            sequenceLengths = []; % No masking
-            [Z,hiddenState] = modelEncoder(parameters.encoder,X,sequenceLengths);
-
-            % Decoder predictions
-            dropout = 0;
-            doTeacherForcing = false;
-            sequenceLength = size(X,3); % Sequence length to predict
-            Y = decoderPredictions(parameters.decoder,Z,T,hiddenState, ...
-                dropout,doTeacherForcing,sequenceLength);
-
-            % Compute loss
-            lossVal = huber(Y,T,DataFormat="CBT");
-
-            % Normalise the loss by sequence length
-            lossVal = lossVal ./ size(T,3);
-
-            % Record validation loss
-            recordMetrics(monitor,iteration,ValidationLoss=lossVal);
-
-            % Check for early stopping
-            if isfinite(validationPatience)
-                validationLosses = [validationLosses lossVal];
-                if min(validationLosses) == validationLosses(1)
-                    earlyStop = true;
-                else
-                    validationLosses(1) = [];
-                end
-            end
-
-            % Update best model if current model is better
-            if extractdata(lossVal) < bestValidationLoss
-                bestValidationLoss = extractdata(lossVal);
-                bestModelParameters = parameters;
-                disp(strcat("New best validation loss at epoch ",num2str(epoch), ...
-                    " (iteration ",num2str(iteration),"): ",num2str(bestValidationLoss)));
-            end
-        end
+        % if iteration == 1 || mod(iteration,validationFrequency) == 0
+        %     % Read mini-batch of data
+        %     [X,T,~,~] = next(mbq_val);
+        % 
+        %     % Encode
+        %     sequenceLengths = []; % No masking
+        %     [Z,hiddenState] = modelEncoder(parameters.encoder,X,sequenceLengths);
+        % 
+        %     % Decoder predictions
+        %     dropout = 0;
+        %     doTeacherForcing = false;
+        %     sequenceLength = size(X,3); % Sequence length to predict
+        %     Y = decoderPredictions(parameters.decoder,Z,T,hiddenState, ...
+        %         dropout,doTeacherForcing,sequenceLength);
+        % 
+        %     % Compute loss
+        %     lossVal = huber(Y,T,DataFormat="CBT");
+        % 
+        %     % Normalise the loss by sequence length
+        %     lossVal = lossVal ./ size(T,3);
+        % 
+        %     % Record validation loss
+        %     recordMetrics(monitor,iteration,ValidationLoss=lossVal);
+        % 
+        %     % Check for early stopping
+        %     if isfinite(validationPatience)
+        %         validationLosses = [validationLosses lossVal];
+        %         if min(validationLosses) == validationLosses(1)
+        %             earlyStop = true;
+        %         else
+        %             validationLosses(1) = [];
+        %         end
+        %     end
+        % 
+        %     % Update best model if current model is better
+        %     if extractdata(lossVal) < bestValidationLoss
+        %         bestValidationLoss = extractdata(lossVal);
+        %         bestModelParameters = parameters;
+        %         disp(strcat("New best validation loss at epoch ",num2str(epoch), ...
+        %             " (iteration ",num2str(iteration),"): ",num2str(bestValidationLoss)));
+        %     end
+        % end
 
         % Update progress percentage
         monitor.Progress = 100 * iteration / maxIterations;
@@ -354,8 +350,8 @@ while hasdata(mbq_test)
     dropout = 0;
     doTeacherForcing = false;
     sequenceLength = size(X,3); % Sequence length to predict
-    Y = decoderPredictions(parameters.decoder,Z,X(:,:,end),hiddenState, ...
-        dropout,doTeacherForcing,sequenceLength);
+    [Y,~,~,~] = decoderPredictions(parameters.decoder,Z, ...
+        X(:,:,end),hiddenState,dropout,doTeacherForcing,sequenceLength);
 
     % Determine predictions
     Y = extractdata(gather(Y));
@@ -525,8 +521,21 @@ end
 %   - decoderPredictions
 %       - modelDecoder
 
-function [loss,gradients] = modelLoss(parameters,X,T, ...
+% Custom function to wrap the modelLoss function
+function [loss,gradients] = modelLossWrapper(parameters,X,T, ...
     sequenceLengthsSource,maskTarget,dropout)
+
+% Compute the loss
+loss = modelLoss(parameters,X,T,sequenceLengthsSource,maskTarget,dropout);
+
+% Compute the gradients
+gradients = dlgradient(loss,parameters);
+
+end
+
+
+function loss = modelLoss(parameters,X,T, ...
+    sequenceLengthsSource,maskTarget,dropout) % [loss,gradients]
 
 % Forward data through the model encoder
 [Z,hiddenState] = modelEncoder(parameters.encoder,X,sequenceLengthsSource);
@@ -534,33 +543,54 @@ function [loss,gradients] = modelLoss(parameters,X,T, ...
 % Decoder predictions
 doTeacherForcing = rand < 0.5;
 sequenceLength = size(T,3);
-[~,Y_pi,Y_mu,Y_sigma] = decoderPredictions(parameters.decoder,Z,T,hiddenState,dropout, ...
-    doTeacherForcing,sequenceLength);
+[~,Y_pi,Y_mu,Y_sigma] = decoderPredictions(parameters.decoder,Z,T, ...
+    hiddenState,dropout,doTeacherForcing,sequenceLength);
 
 % Compute negative log-likelihood loss
 loss = mdnNegativeLogLikelihood(Y_pi,Y_mu,Y_sigma,T,maskTarget);
 
 % Compute gradients
-gradients = dlgradient(loss,parameters);
+% gradients = dlgradient(loss,parameters);
 
 end
 
-function nll = mdnNegativeLogLikelihood(pi,mu,sigma,target,mask)
+
+function nll = mdnNegativeLogLikelihood(mixingCoefficients,means,stdevs,target,mask)
+
 % Compute the negative log-likelihood loss for the mixture density network
-[~, numSamples, numTimeSteps] = size(pi); % numGaussians,
+[numGaussians,numSamples,numTimeSteps] = size(mixingCoefficients);
 numResponses = size(target,1);
 
-% Reshape target to match the dimensions of mu and sigma
-target = reshape(target,numResponses,numSamples,numTimeSteps);
+% Reshape target to match the dimensions of means and stdevs
+target = reshape(target,[numResponses 1 numSamples numTimeSteps]);
 
 % Compute the Gaussian probability density for each component
-gaussianProbabilities = normpdf(target,mu,sigma);
+diff = target - means;
+exponent = -0.5 * (diff ./ stdevs).^2;
+normalizer = sqrt(2 * pi) .* stdevs;
+gaussianProbabilities = exp(exponent) ./ normalizer;
+gaussianProbabilities = prod(gaussianProbabilities,1); % Joint pdf
+
+% Reshape mixingCoefficients to match the dimensions of gaussianProbabilities
+mixingCoefficients = reshape(mixingCoefficients,[1 numGaussians numSamples numTimeSteps]);
 
 % Compute the weighted probabilities
-weightedProbabilities = sum(pi .* gaussianProbabilities, 1);
+weightedProbabilities = sum(mixingCoefficients .* gaussianProbabilities,2);
+
+% Add a small epsilon value to weightedProbabilities for numerical stability
+epsilon = 1e-8;
+weightedProbabilities = weightedProbabilities + epsilon;
+
+% Reshape mask to match the dimensions of weightedProbabilities
+% mask = reshape(mask,[numResponses 1 numSamples numTimeSteps]);
+
+% Apply the mask to the weighted probabilities
+% weightedProbabilities = weightedProbabilities .* mask(1,:,:,:);
 
 % Compute the negative log-likelihood loss
-nll = -sum(log(weightedProbabilities) .* mask, "all");
+logProb = log(weightedProbabilities);
+nll = -sum(logProb,"all");
+
 end
 
 %% Encoder model function (BiLSTM)
@@ -623,30 +653,30 @@ weights = parameters.attention.Weights;
 % Concatenate
 Y = cat(1,Y,repmat(context,[1 1 sequenceLength]));
 
-% Fully connect
-% weights = parameters.fc.Weights;
-% bias = parameters.fc.Bias;
-% Y = fullyconnect(Y,weights,bias,DataFormat="CBT");
-
-% Mixture Density Network
-weights = parameters.mdn.Weights;
-bias = parameters.mdn.Bias;
+% Fully connect/Mixture Density Network
+weights = parameters.fc.Weights;
+bias = parameters.fc.Bias;
 Y_mdn = fullyconnect(Y,weights,bias,DataFormat="CBT");
 
 % Split the MDN output into mixing coefficients, means, and standard deviations
-numGaussians = parameters.numGaussians; % size(weights,1) / (2*numFeatures+1)
-numFeatures = size(X,1);
-splitSizes = [numGaussians numFeatures numFeatures];
+numResponses = size(X,1);
+numGaussians = size(weights,1) / (2*numResponses+1);
+numSamples = size(X,2);
+sequenceLength = size(X,3);
 
 % Mixing coefficients
-Y_pi = Y_mdn(1:splitSizes(1),:,:);
-Y_pi = softmax(Y_pi,DataFormat="CBT");
+Y_pi = Y_mdn(1:numGaussians,:,:);
+Y_pi = softmax(Y_pi,DataFormat="CBT"); % Ensure they sum to 1 for each time step
+% Shape of Y_pi: [numGaussians numSamples sequenceLength]
 
 % Means
-Y_mu = Y_mdn(splitSizes(1)+1:splitSizes(1)+splitSizes(2),:,:);
+Y_mu = Y_mdn(numGaussians+1:numGaussians+numResponses*numGaussians,:,:);
+Y_mu = reshape(Y_mu,[numResponses numGaussians numSamples sequenceLength]);
 
 % Standard deviations
-Y_sigma = exp(Y_mdn(splitSizes(1)+splitSizes(2)+1:end,:,:));
+Y_sigma = Y_mdn(numGaussians+numResponses*numGaussians+1:end,:,:);
+Y_sigma = reshape(Y_sigma,[numResponses numGaussians numSamples sequenceLength]);
+Y_sigma = exp(Y_sigma); % Ensure positivity
 
 end
 
@@ -673,17 +703,20 @@ function [Y,Y_pi,Y_mu,Y_sigma] = decoderPredictions( ...
 T = dlarray(T);
 
 % Initialise context
-numResponses = size(T,1);
 numHiddenUnits = size(Z,1);
 miniBatchSize = size(T,2);
 context = zeros([numHiddenUnits miniBatchSize],"like",Z);
+
+numResponses = size(T,1);
+numGaussians = size(parameters.fc.Weights,1) / (2*numResponses+1);
 
 if doTeacherForcing
     % Forward through decoder with teacher forcing
     [Y_pi,Y_mu,Y_sigma] = modelDecoder(parameters,T,context,hiddenState,Z,dropout);
 
     % Sample from the mixture of Gaussians
-    Y = sampleFromMixture(Y_pi,Y_mu,Y_sigma);
+    % Y = sampleFromMixture(Y_pi,Y_mu,Y_sigma);
+    Y = [];
 else
     % Autoregressive decoding
     % Get first time step for decoder
@@ -693,18 +726,18 @@ else
     Y = zeros([numResponses miniBatchSize sequenceLength],"like",decoderInput);
 
     % Initialise MDN outputs
-    Y_pi = zeros([parameters.numGaussians miniBatchSize sequenceLength],"like",Z);
-    Y_mu = zeros([numResponses * parameters.numGaussians, miniBatchSize, sequenceLength],"like",Z);
-    Y_sigma = zeros([numResponses * parameters.numGaussians, miniBatchSize, sequenceLength],"like",Z);
+    Y_pi = zeros([numGaussians miniBatchSize sequenceLength],"like",decoderInput);
+    Y_mu = zeros([numResponses numGaussians miniBatchSize sequenceLength],"like",decoderInput);
+    Y_sigma = zeros([numResponses numGaussians miniBatchSize sequenceLength],"like",decoderInput);
 
     % Loop over time steps
     for t = 1 : sequenceLength
         % Forward through decoder
-        [Y_pi(:,:,t),Y_mu(:,:,t),Y_sigma(:,:,t),context,hiddenState] = modelDecoder( ...
+        [Y_pi(:,:,t),Y_mu(:,:,:,t),Y_sigma(:,:,:,t),context,hiddenState] = modelDecoder( ...
             parameters,decoderInput,context,hiddenState,Z,dropout);
 
         % Sample from the mixture of Gaussians
-        Y(:,:,t) = sampleFromMixture(Y_pi(:,:,t),Y_mu(:,:,t),Y_sigma(:,:,t),t);
+        Y(:,:,t) = sampleFromMixture(Y_pi(:,:,t),Y_mu(:,:,:,t),Y_sigma(:,:,:,t));
 
         % Update decoder input
         decoderInput = Y(:,:,t);
@@ -712,18 +745,26 @@ else
 end
 
 % Helper function to sample from the mixture of Gaussians
-    function samples = sampleFromMixture(pi,mu,sigma,t)
-        [numGaussians,numSamples,~] = size(pi);
+    function samples = sampleFromMixture(mixingCoefficients,means,stdevs)
+        [~,numSamples,~] = size(mixingCoefficients); % [numGaussians,numSamples,~]
+        %[numResponses,~,~,~] = size(means);
 
-        samples = zeros(numResponses,numSamples,1,"like",mu);
+        samples = zeros(numResponses,numSamples,1,"like",means);
+
+        % Convert from dlarray to numeric array
+        mixingCoefficients = extractdata(mixingCoefficients);
+
+        % Ensure mixing coefficients have at least one positive value
+        % epsilon = 1e-8;
+        % mixingCoefficients = mixingCoefficients + epsilon;
+        % mixingCoefficients = mixingCoefficients ./ sum(mixingCoefficients,1); % Normalise the mixing coefficients
 
         for s = 1 : numSamples
             % Select a Gaussian component based on the mixing coefficients
-            idx = randsample(numGaussians,1,true,pi(:,s,t));
+            idx = randsample(numGaussians,1,true,mixingCoefficients(:,s));
 
             % Sample from the selected Gaussian component
-            samples(:,s,1) = mu((idx-1)*numResponses+1:idx*numResponses,s,t) + ...
-                sigma((idx-1)*numResponses+1:idx*numResponses,s,t) .* randn(numResponses,1,"like",mu);
+            samples(:,s,1) = means(:,idx,s,1) + stdevs(:,idx,s,1) .* randn(numResponses,1,"like",means);
         end
     end
 
