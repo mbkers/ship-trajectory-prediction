@@ -746,26 +746,27 @@ end
 
 % Helper function to sample from the mixture of Gaussians
     function samples = sampleFromMixture(mixingCoefficients,means,stdevs)
-        [~,numSamples,~] = size(mixingCoefficients); % [numGaussians,numSamples,~]
-        %[numResponses,~,~,~] = size(means);
-
-        samples = zeros(numResponses,numSamples,1,"like",means);
+        numSamples = size(mixingCoefficients,2);
+        % numResponses = size(means,1);
 
         % Convert from dlarray to numeric array
         mixingCoefficients = extractdata(mixingCoefficients);
 
-        % Ensure mixing coefficients have at least one positive value
-        % epsilon = 1e-8;
-        % mixingCoefficients = mixingCoefficients + epsilon;
-        % mixingCoefficients = mixingCoefficients ./ sum(mixingCoefficients,1); % Normalise the mixing coefficients
+        % Compute cumulative sum of mixing coefficients
+        cumulativeMixingCoefficients = cumsum(mixingCoefficients,1);
 
-        for s = 1 : numSamples
-            % Select a Gaussian component based on the mixing coefficients
-            idx = randsample(numGaussians,1,true,mixingCoefficients(:,s));
+        % Generate random numbers for each sample
+        randomNumbers = rand(1,numSamples);
 
-            % Sample from the selected Gaussian component
-            samples(:,s,1) = means(:,idx,s,1) + stdevs(:,idx,s,1) .* randn(numResponses,1,"like",means);
-        end
+        % Find the selected Gaussian component for each sample
+        [~,selectedIndices] = max(cumulativeMixingCoefficients > randomNumbers,[],1);
+
+        % Gather the corresponding means and standard deviations
+        selectedMeans = means(:,selectedIndices,1);
+        selectedStdevs = stdevs(:,selectedIndices,1);
+
+        % Sample from the selected Gaussian components
+        samples = selectedMeans + selectedStdevs .* randn(numResponses,numSamples,"like",means);
     end
 
 end
