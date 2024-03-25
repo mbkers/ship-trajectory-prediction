@@ -271,48 +271,48 @@ while epoch < maxEpochs && ~monitor.Stop
             Iteration=string(iteration) + " of " + string(maxIterations));
 
         % Validation
-        % if iteration == 1 || mod(iteration,validationFrequency) == 0
-        %     % Read mini-batch of data
-        %     [X,T,~,~] = next(mbq_val);
-        % 
-        %     % Encode
-        %     sequenceLengths = []; % No masking
-        %     [Z,hiddenState] = modelEncoder(parameters.encoder,X,sequenceLengths);
-        % 
-        %     % Decoder predictions
-        %     dropout = 0;
-        %     doTeacherForcing = false;
-        %     sequenceLength = size(X,3); % Sequence length to predict
-        %     Y = decoderPredictions(parameters.decoder,Z,T,hiddenState, ...
-        %         dropout,doTeacherForcing,sequenceLength);
-        % 
-        %     % Compute loss
-        %     lossVal = huber(Y,T,DataFormat="CBT");
-        % 
-        %     % Normalise the loss by sequence length
-        %     lossVal = lossVal ./ size(T,3);
-        % 
-        %     % Record validation loss
-        %     recordMetrics(monitor,iteration,ValidationLoss=lossVal);
-        % 
-        %     % Check for early stopping
-        %     if isfinite(validationPatience)
-        %         validationLosses = [validationLosses lossVal];
-        %         if min(validationLosses) == validationLosses(1)
-        %             earlyStop = true;
-        %         else
-        %             validationLosses(1) = [];
-        %         end
-        %     end
-        % 
-        %     % Update best model if current model is better
-        %     if extractdata(lossVal) < bestValidationLoss
-        %         bestValidationLoss = extractdata(lossVal);
-        %         bestModelParameters = parameters;
-        %         disp(strcat("New best validation loss at epoch ",num2str(epoch), ...
-        %             " (iteration ",num2str(iteration),"): ",num2str(bestValidationLoss)));
-        %     end
-        % end
+        if iteration == 1 || mod(iteration,validationFrequency) == 0
+            % Read mini-batch of data
+            [X,T,~,~] = next(mbq_val);
+
+            % Encode
+            sequenceLengths = []; % No masking
+            [Z,hiddenState] = modelEncoder(parameters.encoder,X,sequenceLengths);
+
+            % Decoder predictions
+            % dropout = 0;
+            doTeacherForcing = false;
+            sequenceLength = size(X,3); % Sequence length to predict
+            [~,Y_pi,Y_mu,Y_sigma] = decoderPredictions(parameters.decoder,Z,T, ...
+                hiddenState,0,doTeacherForcing,sequenceLength); % dropout,
+
+            % Compute loss
+            lossVal = mdnNegativeLogLikelihood(Y_pi,Y_mu,Y_sigma,T,[]);
+
+            % Normalise the loss by sequence length
+            lossVal = lossVal ./ size(T,3);
+
+            % Record validation loss
+            recordMetrics(monitor,iteration,ValidationLoss=lossVal);
+
+            % Check for early stopping
+            if isfinite(validationPatience)
+                validationLosses = [validationLosses lossVal];
+                if min(validationLosses) == validationLosses(1)
+                    earlyStop = true;
+                else
+                    validationLosses(1) = [];
+                end
+            end
+
+            % Update best model if current model is better
+            if extractdata(lossVal) < bestValidationLoss
+                bestValidationLoss = extractdata(lossVal);
+                bestModelParameters = parameters;
+                disp(strcat("New best validation loss at epoch ",num2str(epoch), ...
+                    " (iteration ",num2str(iteration),"): ",num2str(bestValidationLoss)));
+            end
+        end
 
         % Update progress percentage
         monitor.Progress = 100 * iteration / maxIterations;
@@ -350,8 +350,8 @@ while hasdata(mbq_test)
     dropout = 0;
     doTeacherForcing = false;
     sequenceLength = size(X,3); % Sequence length to predict
-    [Y,~,~,~] = decoderPredictions(parameters.decoder,Z, ...
-        X(:,:,end),hiddenState,dropout,doTeacherForcing,sequenceLength);
+    [Y,~,~,~] = decoderPredictions(parameters.decoder,Z,X(:,:,end), ...
+        hiddenState,dropout,doTeacherForcing,sequenceLength);
 
     % Determine predictions
     Y = extractdata(gather(Y));
@@ -453,8 +453,8 @@ for i = 1 : numel(I)
     dropout = 0;
     doTeacherForcing = false;
     sequenceLength = size(X,3);
-    Y = decoderPredictions(parameters.decoder,Z,X(:,:,end),hiddenState, ...
-        dropout,doTeacherForcing,sequenceLength);
+    Y = decoderPredictions(parameters.decoder,Z,X(:,:,end), ...
+        hiddenState,dropout,doTeacherForcing,sequenceLength);
 
     % Determine predictions
     Y = extractdata(gather(Y));
