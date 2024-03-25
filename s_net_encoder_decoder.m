@@ -457,7 +457,7 @@ for i = 1 : numel(I)
         hiddenState,dropout,doTeacherForcing,sequenceLength);
 
     % Determine predictions
-    Y = extractdata(gather(Y));
+    Y = extractdata(Y); % extractdata(gather(Y));
 
     % Remove dimensions of length 1
     Y = squeeze(Y);
@@ -746,27 +746,25 @@ end
 
 % Helper function to sample from the mixture of Gaussians
     function samples = sampleFromMixture(mixingCoefficients,means,stdevs)
-        numSamples = size(mixingCoefficients,2);
-        % numResponses = size(means,1);
-
         % Convert from dlarray to numeric array
         mixingCoefficients = extractdata(mixingCoefficients);
 
         % Compute cumulative sum of mixing coefficients
         cumulativeMixingCoefficients = cumsum(mixingCoefficients,1);
 
-        % Generate random numbers for each sample
-        randomNumbers = rand(1,numSamples);
+        % Generate random numbers for each sample in the mini-batch
+        randomNumbers = rand(1,miniBatchSize);
 
-        % Find the selected Gaussian component for each sample
+        % Find the selected Gaussian component for each sample in the mini-batch
         [~,selectedIndices] = max(cumulativeMixingCoefficients > randomNumbers,[],1);
 
-        % Gather the corresponding means and standard deviations
-        selectedMeans = means(:,selectedIndices,1);
-        selectedStdevs = stdevs(:,selectedIndices,1);
-
-        % Sample from the selected Gaussian components
-        samples = selectedMeans + selectedStdevs .* randn(numResponses,numSamples,"like",means);
+        % Sample from the selected Gaussian components for each sample in the mini-batch
+        samples = zeros(numResponses,miniBatchSize,"like",means);
+        for s = 1 : miniBatchSize
+            selectedMean = means(:,selectedIndices(s),s);
+            selectedStdev = stdevs(:,selectedIndices(s),s);
+            samples(:,s) = selectedMean + selectedStdev .* randn(numResponses,1,"like",means);
+        end
     end
 
 end
