@@ -760,11 +760,19 @@ end
 
         % Sample from the selected Gaussian components for each sample in the mini-batch
         samples = zeros(numResponses,miniBatchSize,"like",means);
-        for s = 1 : miniBatchSize
-            selectedMean = means(:,selectedIndices(s),s);
-            selectedStdev = stdevs(:,selectedIndices(s),s);
-            samples(:,s) = selectedMean + selectedStdev .* randn(numResponses,1,"like",means);
-        end
+
+        % Convert selectedIndices to linear indices
+        linearIndices = sub2ind(size(means,2:3),selectedIndices,1:miniBatchSize);
+
+        % Gather the corresponding means and standard deviations using linear indexing
+        selectedMeans = means(:,linearIndices);
+        selectedStdevs = stdevs(:,linearIndices);
+
+        % Generate random noise for each sample in the mini-batch
+        noise = randn(numResponses,miniBatchSize,"like",means);
+
+        % Compute the samples by adding the scaled noise to the selected means
+        samples = selectedMeans + selectedStdevs .* noise;
     end
 
 end
