@@ -432,9 +432,15 @@ legend("Mean","Max")
 
 %% Make predictions (example)
 % Find k largest and smallest values and indices
-[~,I_max] = maxk(gc_dist_mean,5);
-[~,I_min] = mink(gc_dist_mean,5);
+k = 5;
+[~,I_max] = maxk(gc_dist_mean,k);
+[~,I_min] = mink(gc_dist_mean,k);
 I = [I_max I_min];
+
+numPredictions = 3; % Number of predictions to generate
+
+% Initialise a cell array to store the predictions for each test sequence
+Y_predictions = cell(numel(I),1);
 
 % Loop over the selected test sequences
 for i = 1 : numel(I)
@@ -449,41 +455,57 @@ for i = 1 : numel(I)
     sequenceLengths = [];
     [Z,hiddenState] = modelEncoder(parameters.encoder,X,sequenceLengths);
 
-    % Decoder predictions
-    dropout = 0;
-    doTeacherForcing = false;
-    sequenceLength = size(X,3);
-    Y = decoderPredictions(parameters.decoder,Z,X(:,:,end), ...
-        hiddenState,dropout,doTeacherForcing,sequenceLength);
+    % Initialise an array to store multiple predictions for the current test sequence
+    Y_pred = zeros(numResponses,sequenceLength,numPredictions);
+    Y_pred_geo = zeros(size(Y_pred));
 
-    % Determine predictions
-    Y = extractdata(Y); % extractdata(gather(Y));
+    % Generate multiple predictions
+    for j = 1 : numPredictions
+        % Decoder predictions
+        dropout = 0;
+        doTeacherForcing = false;
+        sequenceLength = size(X,3);
+        [Y,~,~,~] = decoderPredictions(parameters.decoder,Z,X(:,:,end), ...
+            hiddenState,dropout,doTeacherForcing,sequenceLength);
 
-    % Remove dimensions of length 1
-    Y = squeeze(Y);
+        % Determine predictions
+        Y = extractdata(Y); % extractdata(gather(Y));
 
-    % Convert data back to geographic coordinates
-        % Denormalise data
-        Y_geo = zeros(size(Y));
-        for n = 1 : size(Y,2)
-            Y_geo(:,n) = min_T + [(Y(:,n).'-l)./(u-l)].*(max_T-min_T);
-        end
-    
-        % Inverse feature transformation
-        Y_geo(:,1) = ais_test{idx,1}{end,{'lat' 'lon'}}' + Y_geo(:,1);
-        for n_k = 2 : size(Y_geo,2)
-            Y_geo(:,n_k) = Y_geo(:,n_k-1) + Y_geo(:,n_k);
-        end
+        % Remove dimensions of length 1
+        Y = squeeze(Y);
 
-    % Show results
+        % Convert data back to geographic coordinates
+            % Denormalise data
+            Y_geo = zeros(size(Y));
+            for n = 1 : size(Y,2)
+                Y_geo(:,n) = min_T + [(Y(:,n).'-l)./(u-l)].*(max_T-min_T);
+            end
+
+            % Inverse feature transformation
+            Y_geo(:,1) = ais_test{idx,1}{end,{'lat' 'lon'}}' + Y_geo(:,1);
+            for n_k = 2 : size(Y_geo,2)
+                Y_geo(:,n_k) = Y_geo(:,n_k-1) + Y_geo(:,n_k);
+            end
+
+        % Store the prediction for the current iteration
+        Y_pred(:,:,j) = Y;
+        Y_pred_geo(:,:,j) = Y_geo;
+    end
+
+    % Store the predictions for the current test sequence
+    Y_predictions{i} = Y_pred_geo;
+
+    % Show predictions
     figure
     geoshow(ais_test{idx,1}.lat,ais_test{idx,1}.lon,'Color',[0 0.4470 0.7410], ...
         'Marker','o','MarkerFaceColor',[0 0.4470 0.7410],'MarkerSize',2)
     hold on
     geoshow(ais_test{idx,2}.lat,ais_test{idx,2}.lon,'Color',[0.8500 0.3250 0.0980], ...
         'Marker','o','MarkerFaceColor',[0.8500 0.3250 0.0980],'MarkerSize',2)
-    geoshow(Y_geo(1,:),Y_geo(2,:),'Color',[0.9290 0.6940 0.1250], ...
-        'Marker','o','MarkerFaceColor',[0.9290 0.6940 0.1250],'MarkerSize',2)
+    for j = 1 : numPredictions
+        geoshow(Y_pred_geo(1,:,j),Y_pred_geo(2,:,j),'Color',[0.9290 0.6940 0.1250], ...
+            'Marker','o','MarkerFaceColor',[0.9290 0.6940 0.1250],'MarkerSize',2)
+    end
     legend('Input','Target','Prediction','Location','best')
     xlabel('longitude (deg)')
     ylabel('latitude (deg)')
@@ -746,6 +768,8 @@ end
 
 % Helper function to sample from the mixture of Gaussians
     function samples = sampleFromMixture(mixingCoefficients,means,stdevs)
+    % Sample from the selected Gaussian components for each sample in the mini-batch
+
         % Convert from dlarray to numeric array
         mixingCoefficients = extractdata(mixingCoefficients);
 
@@ -757,9 +781,6 @@ end
 
         % Find the selected Gaussian component for each sample in the mini-batch
         [~,selectedIndices] = max(cumulativeMixingCoefficients > randomNumbers,[],1);
-
-        % Sample from the selected Gaussian components for each sample in the mini-batch
-        samples = zeros(numResponses,miniBatchSize,"like",means);
 
         % Convert selectedIndices to linear indices
         linearIndices = sub2ind(size(means,2:3),selectedIndices,1:miniBatchSize);
