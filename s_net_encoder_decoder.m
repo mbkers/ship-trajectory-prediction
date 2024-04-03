@@ -430,14 +430,14 @@ legend("Mean","Max")
 % xlabel("Test sequence")
 % ylabel("Mean distance (km)")
 
-%% Make predictions (example)
+%% Example predictions
 % Find k largest and smallest values and indices
 k = 5;
 [~,I_max] = maxk(gc_dist_mean,k);
 [~,I_min] = mink(gc_dist_mean,k);
 I = [I_max I_min];
 
-numPredictions = 3; % Number of predictions to generate
+numPredictions = 10; % Number of predictions to generate
 
 % Initialise a cell array to store the predictions for each test sequence
 Y_predictions = cell(numel(I),1);
@@ -469,10 +469,8 @@ for i = 1 : numel(I)
             hiddenState,dropout,doTeacherForcing,sequenceLength);
 
         % Determine predictions
-        Y = extractdata(Y); % extractdata(gather(Y));
-
-        % Remove dimensions of length 1
-        Y = squeeze(Y);
+        Y = extractdata(Y); % Extract data from dlarray
+        Y = squeeze(Y); % Remove dimensions of length 1
 
         % Convert data back to geographic coordinates
             % Denormalise data
@@ -495,20 +493,54 @@ for i = 1 : numel(I)
     % Store the predictions for the current test sequence
     Y_predictions{i} = Y_pred_geo;
 
-    % Show predictions
+    % Extract the latitudes and longitudes at the final time step
+    time_step = size(Y_pred_geo,2);
+    lat_predictions = Y_pred_geo(1,time_step,:);
+    lon_predictions = Y_pred_geo(2,time_step,:);
+
+    % Calculate the mean latitude and longitude
+    most_likely_lat = mean(lat_predictions);
+    most_likely_lon = mean(lon_predictions);
+
+    % Extract the min and max latitudes and longitudes
+    lat_min = min([ais_test{idx,1}.lat; ais_test{idx,2}.lat],[],'all');
+    lat_max = max([ais_test{idx,1}.lat; ais_test{idx,2}.lat],[],'all');
+    lon_min = min([ais_test{idx,1}.lon; ais_test{idx,2}.lon],[],'all');
+    lon_max = max([ais_test{idx,1}.lon; ais_test{idx,2}.lon],[],'all');
+
+    % Determine the latitude and longitude limits
+    latlim = [lat_min-0.05 lat_max+0.05];
+    lonlim = [lon_min-0.05 lon_max+0.05];
+
+    % Create a density map
     figure
-    geoshow(ais_test{idx,1}.lat,ais_test{idx,1}.lon,'Color',[0 0.4470 0.7410], ...
-        'Marker','o','MarkerFaceColor',[0 0.4470 0.7410],'MarkerSize',2)
+    gx = geoaxes;
+    geobasemap streets-light
+
+    % Plot the density heatmap
+    lat = reshape(Y_pred_geo(1,:,:),[],1);
+    lon = reshape(Y_pred_geo(2,:,:),[],1);
+    radiusInMeters = 2.5e3; % 2.5 km
+    dp = geodensityplot(lat,lon, ...
+        "FaceAlpha","interp","FaceColor","interp","Radius",radiusInMeters);
+    colormap parula
+    colorbar
+
     hold on
-    geoshow(ais_test{idx,2}.lat,ais_test{idx,2}.lon,'Color',[0.8500 0.3250 0.0980], ...
+
+    % Plot the input and target trajectories
+    geoplot(ais_test{idx,1}.lat,ais_test{idx,1}.lon,'Color',[0 0.4470 0.7410], ...
+        'Marker','o','MarkerFaceColor',[0 0.4470 0.7410],'MarkerSize',2)
+    geoplot(ais_test{idx,2}.lat,ais_test{idx,2}.lon,'Color',[0.8500 0.3250 0.0980], ...
         'Marker','o','MarkerFaceColor',[0.8500 0.3250 0.0980],'MarkerSize',2)
-    for j = 1 : numPredictions
-        geoshow(Y_pred_geo(1,:,j),Y_pred_geo(2,:,j),'Color',[0.9290 0.6940 0.1250], ...
-            'Marker','o','MarkerFaceColor',[0.9290 0.6940 0.1250],'MarkerSize',2)
-    end
-    legend('Input','Target','Prediction','Location','best')
-    xlabel('longitude (deg)')
-    ylabel('latitude (deg)')
+
+    % Plot the most likely position
+    geoscatter(most_likely_lat,most_likely_lon,50,"magenta","pentagram","filled")
+
+    geolimits(latlim,lonlim);
+    gx.TickLabelFormat = "dd";
+    legend('','Input','Target','Position (time step)','Location','best')
+    title(sprintf('Density Map - Test Sequence %d',idx))
 end
 
 %% Mini-batch preprocessing function
