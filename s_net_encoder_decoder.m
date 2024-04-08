@@ -344,13 +344,13 @@ while hasdata(mbq_test)
 
     % Encode
     sequenceLengths = []; % No masking
-    [Z,hiddenState] = modelEncoder(parameters.encoder,X,sequenceLengths); % sequenceLengthsSource
+    [Z,hiddenState] = modelEncoder(bestModelParameters.encoder,X,sequenceLengths); % sequenceLengthsSource
 
     % Decoder predictions
     dropout = 0;
     doTeacherForcing = false;
     sequenceLength = size(X,3); % Sequence length to predict
-    [Y,~,~,~] = decoderPredictions(parameters.decoder,Z,X(:,:,end), ...
+    [Y,~,~,~] = decoderPredictions(bestModelParameters.decoder,Z,X(:,:,end), ...
         hiddenState,dropout,doTeacherForcing,sequenceLength);
 
     % Determine predictions
@@ -430,7 +430,7 @@ legend("Mean","Max")
 % xlabel("Test sequence")
 % ylabel("Mean distance (km)")
 
-%% Example predictions
+%% Make example predictions
 % Find k largest and smallest values and indices
 k = 5;
 [~,I_max] = maxk(gc_dist_mean,k);
@@ -453,7 +453,7 @@ for i = 1 : numel(I)
 
     % Encode
     sequenceLengths = [];
-    [Z,hiddenState] = modelEncoder(parameters.encoder,X,sequenceLengths);
+    [Z,hiddenState] = modelEncoder(bestModelParameters.encoder,X,sequenceLengths);
 
     % Initialise an array to store multiple predictions for the current test sequence
     Y_pred = zeros(numResponses,sequenceLength,numPredictions);
@@ -465,7 +465,7 @@ for i = 1 : numel(I)
         dropout = 0;
         doTeacherForcing = false;
         sequenceLength = size(X,3);
-        [Y,~,~,~] = decoderPredictions(parameters.decoder,Z,X(:,:,end), ...
+        [Y,~,~,~] = decoderPredictions(bestModelParameters.decoder,Z,X(:,:,end), ...
             hiddenState,dropout,doTeacherForcing,sequenceLength);
 
         % Determine predictions
@@ -707,15 +707,15 @@ weights = parameters.attention.Weights;
 % Concatenate
 Y = cat(1,Y,repmat(context,[1 1 sequenceLength]));
 
-% Fully connect/Mixture Density Network
+% Fully connect
 weights = parameters.fc.Weights;
 bias = parameters.fc.Bias;
-Y_mdn = fullyconnect(Y,weights,bias,DataFormat="CBT");
+Y_mdn = fullyconnect(Y,weights,bias,DataFormat="CBT"); % Mixture Density Network
 
-% Split the MDN output into mixing coefficients, means, and standard deviations
+% Split the MDN output into mixing coefficients, means and standard deviations
 numResponses = size(X,1);
 numGaussians = size(weights,1) / (2*numResponses+1);
-numSamples = size(X,2);
+numSamples = size(X,2); % miniBatchSize
 sequenceLength = size(X,3);
 
 % Mixing coefficients
