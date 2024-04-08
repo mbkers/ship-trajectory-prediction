@@ -182,9 +182,10 @@ bestModelParameters = parameters;
 % Initialise and prepare the training progress monitor
 monitor = trainingProgressMonitor;
 
-monitor.Metrics = ["TrainingLoss","ValidationLoss"];
+monitor.Metrics = ["TrainingLoss","ValidationLoss","GlobalL2Norm"];
 
 groupSubPlot(monitor,"Loss",["TrainingLoss","ValidationLoss"]);
+groupSubPlot(monitor,"GlobalL2Norm","GlobalL2Norm");
 
 monitor.Info = ["LearningRate","Epoch","Iteration","ExecutionEnvironment"];
 
@@ -205,16 +206,17 @@ end
 % mini-batches of training data. For each mini-batch:
     % 1.1) Evaluate the model loss and gradients
     % 1.2) Apply L2 regularization to the weights
-    % 1.3) Apply the gradient threshold operation (if needed)
-    % 1.4) Determine the learning rate for the learning rate schedule
-    % 1.5) Update the encoder and decoder model parameters using the
+    % 1.3) Apply the gradient threshold operation
+    % 1.4) Record and plot the global L2 norm value
+    % 1.5) Determine the learning rate for the learning rate schedule
+    % 1.6) Update the encoder and decoder model parameters using the
     % 'adamupdate' function
-    % 1.6) Record and plot the training loss
-    % 1.7) Update the training progress monitor
-    % 1.8) Record and plot the validation loss
-    % 1.9) Check for early stopping
-    % 1.10) Update best model if current model is better
-    % 1.11) Update the progress percentage
+    % 1.7) Record and plot the training loss
+    % 1.8) Update the training progress monitor
+    % 1.9) Record and plot the validation loss
+    % 1.10) Check for early stopping
+    % 1.11) Update best model if current model is better
+    % 1.12) Update the progress percentage
 % 2) Stop training when the 'Stop' property of the training progress
 % monitor is true
 
@@ -248,7 +250,10 @@ while epoch < maxEpochs && ~monitor.Stop
         gradients = applyL2Regularization(gradients,parameters,l2Regularization);
 
         % Apply the gradient threshold operation
-        gradients = thresholdGlobalL2Norm(gradients,gradientThreshold);
+        [gradients,globalL2Norm] = thresholdGlobalL2Norm(gradients,gradientThreshold);
+
+        % Record the global L2 norm value
+        recordMetrics(monitor,iteration,GlobalL2Norm=globalL2Norm);
 
         % Calculate the new learning rate with exponential decay
         learnRate = learnRateInitial * decayRate^((epoch - 1) / decaySteps);
@@ -975,7 +980,7 @@ end
 % gradient is scaled down by the same factor (normScale) to ensure the
 % global L2 norm after scaling is equal to the threshold.
 
-function gradients = thresholdGlobalL2Norm(gradients,gradientThreshold)
+function [gradients,globalL2Norm] = thresholdGlobalL2Norm(gradients,gradientThreshold)
 
 globalL2Norm = 0;
 
