@@ -128,7 +128,7 @@ validationPatience = Inf;
 % L2 regularization
 l2Regularization = 0.0001; % L2 regularization coefficient, lambda
 
-% Gradient clipping (global-l2norm)
+% Gradient clipping
 gradientThreshold = 10;
 
 % Specify values for the ADAM optimisation algorithm
@@ -205,7 +205,7 @@ end
 % mini-batches of training data. For each mini-batch:
     % 1.1) Evaluate the model loss and gradients
     % 1.2) Apply L2 regularization to the weights
-    % 1.3) Apply the gradient threshold operation (if needed)
+    % 1.3) Apply the gradient threshold operation
     % 1.4) Determine the learning rate for the learning rate schedule
     % 1.5) Update the encoder and decoder model parameters using the
     % 'adamupdate' function
@@ -635,7 +635,7 @@ weightedProbabilities = sum(mixingCoefficients .* gaussianProbabilities,2);
 epsilon = 1e-8;
 weightedProbabilities = weightedProbabilities + epsilon;
 
-% Reshape mask to match the dimensions of weightedProbabilities
+% Reshape mask to match the dimensions of weightedProbabilities % TODO: reimplement mask
 % mask = reshape(mask,[numResponses 1 numSamples numTimeSteps]);
 
 % Apply the mask to the weighted probabilities
@@ -980,11 +980,11 @@ function gradients = thresholdGlobalL2Norm(gradients,gradientThreshold)
 globalL2Norm = 0;
 
 % Calculate global L2 norm
-fieldNames = fieldnames(gradients);
+fieldNames = fieldnames(gradients); % encoder, decoder
 for i = 1 : numel(fieldNames)
-    subFieldNames = fieldnames(gradients.(fieldNames{i}));
+    subFieldNames = fieldnames(gradients.(fieldNames{i})); % layers (e.g. bilstm, attention, lstm and fc)
     for j = 1 : numel(subFieldNames)
-        subSubFieldNames = fieldnames(gradients.(fieldNames{i}).(subFieldNames{j}));
+        subSubFieldNames = fieldnames(gradients.(fieldNames{i}).(subFieldNames{j})); % weights, bias
         for k = 1 : numel(subSubFieldNames)
             gradientValues = gradients.(fieldNames{i}).(subFieldNames{j}).(subSubFieldNames{k});
             globalL2Norm = globalL2Norm + sum(gradientValues(:).^2);
