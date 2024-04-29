@@ -50,14 +50,12 @@ dropout = 0.20;
     parameters.encoder.bilstm.Bias = initializeUnitForgetGate(2*numHiddenUnits);
 
 % Initialise decoder model parameters
-    % Define the output size
-    outputSize = numResponses;
-
     % Initialise the weights of the attention mechanism with the Glorot
     % initialiser
     sz = [numHiddenUnits numHiddenUnits];
     numOut = numHiddenUnits;
     numIn = numHiddenUnits;
+
     parameters.decoder.attention.Weights = initializeGlorot(sz,numOut,numIn);
 
     % Initialise the learnable parameters for the decoder LSTM operation
@@ -72,9 +70,18 @@ dropout = 0.20;
 
     % Initialise the learnable parameters for the decoder fully connected
     % operation:
-    % 1) Initialise the weights with the Glorot initialiser
-    % 2) Initialise the bias with zeros using zeros initialisation*
+    % 1) Add the Mixture Density Network (MDN) parameters
+    % 2) Initialise the weights with the Glorot initialiser
+    % 3) Initialise the bias with zeros using zeros initialisation*
     % *(see the 'Supporting functions' section at the end of the script)
+
+    % Specify the number of Gaussian components in the mixture
+    numGaussians = 5;
+
+    % Define the output size for the MDN
+    outputSize = numGaussians*(2*numResponses+1);
+
+    % Initialise the MDN parameters
     sz = [outputSize 2*numHiddenUnits];
     numOut = outputSize;
     numIn = 2*numHiddenUnits;
@@ -121,7 +128,7 @@ validationPatience = Inf;
 % L2 regularization
 l2Regularization = 0.0001; % L2 regularization coefficient, lambda
 
-% Gradient clipping (global-l2norm)
+% Gradient clipping
 gradientThreshold = 10;
 
 % Specify values for the ADAM optimisation algorithm
@@ -141,12 +148,12 @@ numMiniBatchOutputs = 4;
 mbq_train = minibatchqueue(dsTrain, ...
     numMiniBatchOutputs, ...
     MiniBatchSize=miniBatchSize, ...
-    MiniBatchFcn=@(x,t) preprocessMiniBatch(x,t,inputSize,outputSize));
+    MiniBatchFcn=@(x,t) preprocessMiniBatch(x,t,inputSize,numResponses));
 
 mbq_val = minibatchqueue(dsVal, ...
     numMiniBatchOutputs, ...
     MiniBatchSize=miniBatchSize, ...
-    MiniBatchFcn=@(x,t) preprocessMiniBatch(x,t,inputSize,outputSize));
+    MiniBatchFcn=@(x,t) preprocessMiniBatch(x,t,inputSize,numResponses));
 
 % Initialise the parameters for the 'adamupdate' function
 trailingAvg = [];
@@ -198,7 +205,7 @@ end
 % mini-batches of training data. For each mini-batch:
     % 1.1) Evaluate the model loss and gradients
     % 1.2) Apply L2 regularization to the weights
-    % 1.3) Apply the gradient threshold operation (if needed)
+    % 1.3) Apply the gradient threshold operation
     % 1.4) Determine the learning rate for the learning rate schedule
     % 1.5) Update the encoder and decoder model parameters using the
     % 'adamupdate' function
@@ -234,7 +241,7 @@ while epoch < maxEpochs && ~monitor.Stop
         [X,T,sequenceLengthsSource,maskTarget] = next(mbq_train);
 
         % Evaluate the model loss and gradients
-        [lossTrain,gradients] = dlfeval(@modelLoss,parameters,X,T, ...
+        [lossTrain,gradients] = dlfeval(@modelLossWrapper,parameters,X,T, ...
             sequenceLengthsSource,maskTarget,dropout);
 
         % Apply L2 regularization to the gradients of the weight parameters
@@ -273,14 +280,14 @@ while epoch < maxEpochs && ~monitor.Stop
             [Z,hiddenState] = modelEncoder(parameters.encoder,X,sequenceLengths);
 
             % Decoder predictions
-            dropout = 0;
+            % dropout = 0;
             doTeacherForcing = false;
             sequenceLength = size(X,3); % Sequence length to predict
-            Y = decoderPredictions(parameters.decoder,Z,T,hiddenState, ...
-                dropout,doTeacherForcing,sequenceLength);
+            [~,Y_pi,Y_mu,Y_sigma] = decoderPredictions(parameters.decoder,Z,T, ...
+                hiddenState,0,doTeacherForcing,sequenceLength); % dropout,
 
             % Compute loss
-            lossVal = huber(Y,T,DataFormat="CBT");
+            lossVal = mdnNegativeLogLikelihood(Y_pi,Y_mu,Y_sigma,T,[]);
 
             % Normalise the loss by sequence length
             lossVal = lossVal ./ size(T,3);
@@ -324,7 +331,7 @@ end
 mbq_test = minibatchqueue(dsTest, ...
     numMiniBatchOutputs, ...
     MiniBatchSize=miniBatchSize, ...
-    MiniBatchFcn=@(x,t) preprocessMiniBatch(x,t,inputSize,outputSize));
+    MiniBatchFcn=@(x,t) preprocessMiniBatch(x,t,inputSize,numResponses));
 
 % Initialise the outputs
 Y_test = [];
@@ -337,14 +344,14 @@ while hasdata(mbq_test)
 
     % Encode
     sequenceLengths = []; % No masking
-    [Z,hiddenState] = modelEncoder(parameters.encoder,X,sequenceLengths); % sequenceLengthsSource
+    [Z,hiddenState] = modelEncoder(bestModelParameters.encoder,X,sequenceLengths); % sequenceLengthsSource
 
     % Decoder predictions
     dropout = 0;
     doTeacherForcing = false;
     sequenceLength = size(X,3); % Sequence length to predict
-    Y = decoderPredictions(parameters.decoder,Z,X(:,:,end),hiddenState, ...
-        dropout,doTeacherForcing,sequenceLength);
+    [Y,~,~,~] = decoderPredictions(bestModelParameters.decoder,Z,X(:,:,end), ...
+        hiddenState,dropout,doTeacherForcing,sequenceLength);
 
     % Determine predictions
     Y = extractdata(gather(Y));
@@ -423,11 +430,17 @@ legend("Mean","Max")
 % xlabel("Test sequence")
 % ylabel("Mean distance (km)")
 
-%% Make predictions (example)
+%% Make example predictions
 % Find k largest and smallest values and indices
-[~,I_max] = maxk(gc_dist_mean,5);
-[~,I_min] = mink(gc_dist_mean,5);
+k = 5;
+[~,I_max] = maxk(gc_dist_mean,k);
+[~,I_min] = mink(gc_dist_mean,k);
 I = [I_max I_min];
+
+numPredictions = 10; % Number of predictions to generate
+
+% Initialise a cell array to store the predictions for each test sequence
+Y_predictions = cell(numel(I),1);
 
 % Loop over the selected test sequences
 for i = 1 : numel(I)
@@ -440,46 +453,94 @@ for i = 1 : numel(I)
 
     % Encode
     sequenceLengths = [];
-    [Z,hiddenState] = modelEncoder(parameters.encoder,X,sequenceLengths);
+    [Z,hiddenState] = modelEncoder(bestModelParameters.encoder,X,sequenceLengths);
 
-    % Decoder predictions
-    dropout = 0;
-    doTeacherForcing = false;
-    sequenceLength = size(X,3);
-    Y = decoderPredictions(parameters.decoder,Z,X(:,:,end),hiddenState, ...
-        dropout,doTeacherForcing,sequenceLength);
+    % Initialise an array to store multiple predictions for the current test sequence
+    Y_pred = zeros(numResponses,sequenceLength,numPredictions);
+    Y_pred_geo = zeros(size(Y_pred));
 
-    % Determine predictions
-    Y = extractdata(gather(Y));
+    % Generate multiple predictions
+    for j = 1 : numPredictions
+        % Decoder predictions
+        dropout = 0;
+        doTeacherForcing = false;
+        sequenceLength = size(X,3);
+        [Y,~,~,~] = decoderPredictions(bestModelParameters.decoder,Z,X(:,:,end), ...
+            hiddenState,dropout,doTeacherForcing,sequenceLength);
 
-    % Remove dimensions of length 1
-    Y = squeeze(Y);
+        % Determine predictions
+        Y = extractdata(Y); % Extract data from dlarray
+        Y = squeeze(Y); % Remove dimensions of length 1
 
-    % Convert data back to geographic coordinates
-        % Denormalise data
-        Y_geo = zeros(size(Y));
-        for n = 1 : size(Y,2)
-            Y_geo(:,n) = min_T + [(Y(:,n).'-l)./(u-l)].*(max_T-min_T);
-        end
-    
-        % Inverse feature transformation
-        Y_geo(:,1) = ais_test{idx,1}{end,{'lat' 'lon'}}' + Y_geo(:,1);
-        for n_k = 2 : size(Y_geo,2)
-            Y_geo(:,n_k) = Y_geo(:,n_k-1) + Y_geo(:,n_k);
-        end
+        % Convert data back to geographic coordinates
+            % Denormalise data
+            Y_geo = zeros(size(Y));
+            for n = 1 : size(Y,2)
+                Y_geo(:,n) = min_T + [(Y(:,n).'-l)./(u-l)].*(max_T-min_T);
+            end
 
-    % Show results
+            % Inverse feature transformation
+            Y_geo(:,1) = ais_test{idx,1}{end,{'lat' 'lon'}}' + Y_geo(:,1);
+            for n_k = 2 : size(Y_geo,2)
+                Y_geo(:,n_k) = Y_geo(:,n_k-1) + Y_geo(:,n_k);
+            end
+
+        % Store the prediction for the current iteration
+        Y_pred(:,:,j) = Y;
+        Y_pred_geo(:,:,j) = Y_geo;
+    end
+
+    % Store the predictions for the current test sequence
+    Y_predictions{i} = Y_pred_geo;
+
+    % Extract the latitudes and longitudes at the final time step
+    time_step = size(Y_pred_geo,2);
+    lat_predictions = Y_pred_geo(1,time_step,:);
+    lon_predictions = Y_pred_geo(2,time_step,:);
+
+    % Calculate the mean latitude and longitude
+    most_likely_lat = mean(lat_predictions);
+    most_likely_lon = mean(lon_predictions);
+
+    % Extract the min and max latitudes and longitudes
+    lat_min = min([ais_test{idx,1}.lat; ais_test{idx,2}.lat],[],'all');
+    lat_max = max([ais_test{idx,1}.lat; ais_test{idx,2}.lat],[],'all');
+    lon_min = min([ais_test{idx,1}.lon; ais_test{idx,2}.lon],[],'all');
+    lon_max = max([ais_test{idx,1}.lon; ais_test{idx,2}.lon],[],'all');
+
+    % Determine the latitude and longitude limits
+    latlim = [lat_min-0.05 lat_max+0.05];
+    lonlim = [lon_min-0.05 lon_max+0.05];
+
+    % Create a density map
     figure
-    geoshow(ais_test{idx,1}.lat,ais_test{idx,1}.lon,'Color',[0 0.4470 0.7410], ...
-        'Marker','o','MarkerFaceColor',[0 0.4470 0.7410],'MarkerSize',2)
+    gx = geoaxes;
+    geobasemap streets-light
+
+    % Plot the density heatmap
+    lat = reshape(Y_pred_geo(1,:,:),[],1);
+    lon = reshape(Y_pred_geo(2,:,:),[],1);
+    radiusInMeters = 2.5e3; % 2.5 km
+    dp = geodensityplot(lat,lon, ...
+        "FaceAlpha","interp","FaceColor","interp","Radius",radiusInMeters);
+    colormap parula
+    colorbar
+
     hold on
-    geoshow(ais_test{idx,2}.lat,ais_test{idx,2}.lon,'Color',[0.8500 0.3250 0.0980], ...
+
+    % Plot the input and target trajectories
+    geoplot(ais_test{idx,1}.lat,ais_test{idx,1}.lon,'Color',[0 0.4470 0.7410], ...
+        'Marker','o','MarkerFaceColor',[0 0.4470 0.7410],'MarkerSize',2)
+    geoplot(ais_test{idx,2}.lat,ais_test{idx,2}.lon,'Color',[0.8500 0.3250 0.0980], ...
         'Marker','o','MarkerFaceColor',[0.8500 0.3250 0.0980],'MarkerSize',2)
-    geoshow(Y_geo(1,:),Y_geo(2,:),'Color',[0.9290 0.6940 0.1250], ...
-        'Marker','o','MarkerFaceColor',[0.9290 0.6940 0.1250],'MarkerSize',2)
-    legend('Input','Target','Prediction','Location','best')
-    xlabel('longitude (deg)')
-    ylabel('latitude (deg)')
+
+    % Plot the most likely position
+    geoscatter(most_likely_lat,most_likely_lon,50,"magenta","pentagram","filled")
+
+    geolimits(latlim,lonlim);
+    gx.TickLabelFormat = "dd";
+    legend('','Input','Target','Position (time step)','Location','best')
+    title(sprintf('Density Map - Test Sequence %d',idx))
 end
 
 %% Mini-batch preprocessing function
@@ -495,14 +556,14 @@ end
 % on the GPU if one is available.
 
 function [X,T,sequenceLengthsSource,maskTarget] = preprocessMiniBatch( ...
-    X_train,T_train,inputSize,outputSize)
+    X_train,T_train,inputSize,numResponses)
 
 sequenceLengthsSource = cellfun(@(x) size(x,2),X_train);
 
 X = padsequences(X_train,2,PaddingValue=inputSize);
 X = permute(X,[1 3 2]);
 
-[T,maskTarget] = padsequences(T_train,2,PaddingValue=outputSize);
+[T,maskTarget] = padsequences(T_train,2,PaddingValue=numResponses);
 T = permute(T,[1 3 2]);
 maskTarget = permute(maskTarget,[1 3 2]);
 
@@ -514,23 +575,75 @@ end
 %   - decoderPredictions
 %       - modelDecoder
 
-function [loss,gradients] = modelLoss(parameters,X,T, ...
+% Custom function to wrap the modelLoss function
+function [loss,gradients] = modelLossWrapper(parameters,X,T, ...
     sequenceLengthsSource,maskTarget,dropout)
+
+% Compute the loss
+loss = modelLoss(parameters,X,T,sequenceLengthsSource,maskTarget,dropout);
+
+% Compute the gradients
+gradients = dlgradient(loss,parameters);
+
+end
+
+
+function loss = modelLoss(parameters,X,T, ...
+    sequenceLengthsSource,maskTarget,dropout) % [loss,gradients]
 
 % Forward data through the model encoder
 [Z,hiddenState] = modelEncoder(parameters.encoder,X,sequenceLengthsSource);
 
-% Decoder output/predictions
+% Decoder predictions
 doTeacherForcing = rand < 0.5;
 sequenceLength = size(T,3);
-Y = decoderPredictions(parameters.decoder,Z,T,hiddenState,dropout, ...
-    doTeacherForcing,sequenceLength);
+[~,Y_pi,Y_mu,Y_sigma] = decoderPredictions(parameters.decoder,Z,T, ...
+    hiddenState,dropout,doTeacherForcing,sequenceLength);
 
-% Compute and update loss
-loss = huber(Y,T,Mask=maskTarget,DataFormat="CBT");
+% Compute negative log-likelihood loss
+loss = mdnNegativeLogLikelihood(Y_pi,Y_mu,Y_sigma,T,maskTarget);
 
-% Compute and update gradients
-gradients = dlgradient(loss,parameters);
+% Compute gradients
+% gradients = dlgradient(loss,parameters);
+
+end
+
+
+function nll = mdnNegativeLogLikelihood(mixingCoefficients,means,stdevs,target,mask)
+
+% Compute the negative log-likelihood loss for the mixture density network
+[numGaussians,numSamples,numTimeSteps] = size(mixingCoefficients);
+numResponses = size(target,1);
+
+% Reshape target to match the dimensions of means and stdevs
+target = reshape(target,[numResponses 1 numSamples numTimeSteps]);
+
+% Compute the Gaussian probability density for each component
+diff = target - means;
+exponent = -0.5 * (diff ./ stdevs).^2;
+normalizer = sqrt(2 * pi) .* stdevs;
+gaussianProbabilities = exp(exponent) ./ normalizer;
+gaussianProbabilities = prod(gaussianProbabilities,1); % Joint pdf
+
+% Reshape mixingCoefficients to match the dimensions of gaussianProbabilities
+mixingCoefficients = reshape(mixingCoefficients,[1 numGaussians numSamples numTimeSteps]);
+
+% Compute the weighted probabilities
+weightedProbabilities = sum(mixingCoefficients .* gaussianProbabilities,2);
+
+% Add a small epsilon value to weightedProbabilities for numerical stability
+epsilon = 1e-8;
+weightedProbabilities = weightedProbabilities + epsilon;
+
+% Reshape mask to match the dimensions of weightedProbabilities % TODO: reimplement mask
+% mask = reshape(mask,[numResponses 1 numSamples numTimeSteps]);
+
+% Apply the mask to the weighted probabilities
+% weightedProbabilities = weightedProbabilities .* mask(1,:,:,:);
+
+% Compute the negative log-likelihood loss
+logProb = log(weightedProbabilities);
+nll = -sum(logProb,"all");
 
 end
 
@@ -564,7 +677,7 @@ end
 end
 
 %% Decoder model function
-function [Y,context,hiddenState,attentionScores] = modelDecoder( ...
+function [Y_pi,Y_mu,Y_sigma,context,hiddenState,attentionScores] = modelDecoder( ...
     parameters,X,context,hiddenState,Z,dropout)
 
 X = dlarray(X); % needed?
@@ -597,7 +710,27 @@ Y = cat(1,Y,repmat(context,[1 1 sequenceLength]));
 % Fully connect
 weights = parameters.fc.Weights;
 bias = parameters.fc.Bias;
-Y = fullyconnect(Y,weights,bias,DataFormat="CBT");
+Y_mdn = fullyconnect(Y,weights,bias,DataFormat="CBT"); % Mixture Density Network
+
+% Split the MDN output into mixing coefficients, means and standard deviations
+numResponses = size(X,1);
+numGaussians = size(weights,1) / (2*numResponses+1);
+numSamples = size(X,2); % miniBatchSize
+sequenceLength = size(X,3);
+
+% Mixing coefficients
+Y_pi = Y_mdn(1:numGaussians,:,:);
+Y_pi = softmax(Y_pi,DataFormat="CBT"); % Ensure they sum to 1 for each time step
+% Shape of Y_pi: [numGaussians numSamples sequenceLength]
+
+% Means
+Y_mu = Y_mdn(numGaussians+1:numGaussians+numResponses*numGaussians,:,:);
+Y_mu = reshape(Y_mu,[numResponses numGaussians numSamples sequenceLength]);
+
+% Standard deviations
+Y_sigma = Y_mdn(numGaussians+numResponses*numGaussians+1:end,:,:);
+Y_sigma = reshape(Y_sigma,[numResponses numGaussians numSamples sequenceLength]);
+Y_sigma = exp(Y_sigma); % Ensure positivity
 
 end
 
@@ -617,38 +750,83 @@ values = Z;
 end
 
 %% Decoder model predictions function
-function Y = decoderPredictions(parameters,Z,T,hiddenState,dropout, ...
-    doTeacherForcing,sequenceLength)
+function [Y,Y_pi,Y_mu,Y_sigma] = decoderPredictions( ...
+    parameters,Z,T,hiddenState,dropout,doTeacherForcing,sequenceLength)
 
 % Convert to dlarray
 T = dlarray(T);
 
 % Initialise context
-miniBatchSize = size(T,2);
 numHiddenUnits = size(Z,1);
+miniBatchSize = size(T,2);
 context = zeros([numHiddenUnits miniBatchSize],"like",Z);
 
+numResponses = size(T,1);
+numGaussians = size(parameters.fc.Weights,1) / (2*numResponses+1);
+
 if doTeacherForcing
-    % Forward through decoder
-    Y = modelDecoder(parameters,T,context,hiddenState,Z,dropout);
-else % Autoregressive decoding
+    % Forward through decoder with teacher forcing
+    [Y_pi,Y_mu,Y_sigma] = modelDecoder(parameters,T,context,hiddenState,Z,dropout);
+
+    % Sample from the mixture of Gaussians
+    % Y = sampleFromMixture(Y_pi,Y_mu,Y_sigma);
+    Y = [];
+else
+    % Autoregressive decoding
     % Get first time step for decoder
     decoderInput = T(:,:,1);
 
-    % Initialise output
-    numClasses = numel(parameters.fc.Bias);
-    Y = zeros([numClasses miniBatchSize sequenceLength],"like",decoderInput);
+    % Initialise output (sampled predictions)
+    Y = zeros([numResponses miniBatchSize sequenceLength],"like",decoderInput);
+
+    % Initialise MDN outputs
+    Y_pi = zeros([numGaussians miniBatchSize sequenceLength],"like",decoderInput);
+    Y_mu = zeros([numResponses numGaussians miniBatchSize sequenceLength],"like",decoderInput);
+    Y_sigma = zeros([numResponses numGaussians miniBatchSize sequenceLength],"like",decoderInput);
 
     % Loop over time steps
     for t = 1 : sequenceLength
         % Forward through decoder
-        [Y(:,:,t),context,hiddenState] = modelDecoder(parameters, ...
-            decoderInput,context,hiddenState,Z,dropout);
+        [Y_pi(:,:,t),Y_mu(:,:,:,t),Y_sigma(:,:,:,t),context,hiddenState] = modelDecoder( ...
+            parameters,decoderInput,context,hiddenState,Z,dropout);
+
+        % Sample from the mixture of Gaussians
+        Y(:,:,t) = sampleFromMixture(Y_pi(:,:,t),Y_mu(:,:,:,t),Y_sigma(:,:,:,t));
 
         % Update decoder input
         decoderInput = Y(:,:,t);
     end
 end
+
+% Helper function to sample from the mixture of Gaussians
+    function samples = sampleFromMixture(mixingCoefficients,means,stdevs)
+    % Sample from the selected Gaussian components for each sample in the mini-batch
+
+        % Convert from dlarray to numeric array
+        mixingCoefficients = extractdata(mixingCoefficients);
+
+        % Compute cumulative sum of mixing coefficients
+        cumulativeMixingCoefficients = cumsum(mixingCoefficients,1);
+
+        % Generate random numbers for each sample in the mini-batch
+        randomNumbers = rand(1,miniBatchSize);
+
+        % Find the selected Gaussian component for each sample in the mini-batch
+        [~,selectedIndices] = max(cumulativeMixingCoefficients > randomNumbers,[],1);
+
+        % Convert selectedIndices to linear indices
+        linearIndices = sub2ind(size(means,2:3),selectedIndices,1:miniBatchSize);
+
+        % Gather the corresponding means and standard deviations using linear indexing
+        selectedMeans = means(:,linearIndices);
+        selectedStdevs = stdevs(:,linearIndices);
+
+        % Generate random noise for each sample in the mini-batch
+        noise = randn(numResponses,miniBatchSize,"like",means);
+
+        % Compute the samples by adding the scaled noise to the selected means
+        samples = selectedMeans + selectedStdevs .* noise;
+    end
 
 end
 
@@ -802,11 +980,11 @@ function gradients = thresholdGlobalL2Norm(gradients,gradientThreshold)
 globalL2Norm = 0;
 
 % Calculate global L2 norm
-fieldNames = fieldnames(gradients);
+fieldNames = fieldnames(gradients); % encoder, decoder
 for i = 1 : numel(fieldNames)
-    subFieldNames = fieldnames(gradients.(fieldNames{i}));
+    subFieldNames = fieldnames(gradients.(fieldNames{i})); % layers (e.g. bilstm, attention, lstm and fc)
     for j = 1 : numel(subFieldNames)
-        subSubFieldNames = fieldnames(gradients.(fieldNames{i}).(subFieldNames{j}));
+        subSubFieldNames = fieldnames(gradients.(fieldNames{i}).(subFieldNames{j})); % weights, bias
         for k = 1 : numel(subSubFieldNames)
             gradientValues = gradients.(fieldNames{i}).(subFieldNames{j}).(subSubFieldNames{k});
             globalL2Norm = globalL2Norm + sum(gradientValues(:).^2);
