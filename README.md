@@ -125,7 +125,7 @@ The MDN layer of the decoder outputs the parameters of a mixture of Gaussians at
 
 ## Metrics and evaluation
 
-The model is trained using the negative log-likelihood (NLL) loss, which is a measure of how well the MDN's predicted distribution matches the actual output data (target). <!-- between predicted and target sequences from the training set. -->
+The model is trained using the negative log-likelihood (NLL) loss, which is a measure of how well the MDN's predicted distribution matches the actual output or target data. <!-- between predicted and target sequences from the training set. -->
 
 <!-- Specifically, the training process involves optimising the parameters of the Gaussian components (i.e. means and standard deviations) and the mixing coefficients to best fit the data. -->
 
