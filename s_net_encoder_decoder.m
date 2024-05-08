@@ -1,8 +1,9 @@
 % s_net_encoder_decoder.m
 % This script creates, trains and tests a recurrent sequence-to-sequence
-% encoder-decoder model with attention (by using functions rather than a
-% MATLAB layer array, layerGraph or dlnetwork object) for ship trajectory
-% prediction.
+% encoder-decoder model that incorporates both an attention mechanism and a
+% Mixture Density Network (MDN) (Encoder-Decoder MDN) for ship trajectory
+% prediction (by using functions rather than a MATLAB layer array,
+% layerGraph or dlnetwork object).
 
 clear
 clc
