@@ -148,11 +148,13 @@ numMiniBatchOutputs = 4;
 mbq_train = minibatchqueue(dsTrain, ...
     numMiniBatchOutputs, ...
     MiniBatchSize=miniBatchSize, ...
+    PartialMiniBatch="discard", ...
     MiniBatchFcn=@(x,t) preprocessMiniBatch(x,t,inputSize,numResponses));
 
 mbq_val = minibatchqueue(dsVal, ...
     numMiniBatchOutputs, ...
     MiniBatchSize=miniBatchSize, ...
+    PartialMiniBatch="discard", ...
     MiniBatchFcn=@(x,t) preprocessMiniBatch(x,t,inputSize,numResponses));
 
 % Initialise the parameters for the 'adamupdate' function
@@ -161,13 +163,13 @@ trailingAvgSq = [];
 
 % Calculate the total number of iterations for the training progress monitor
 numObservationsTrain = numel(X_train);
-numIterationsPerEpoch = ceil(numObservationsTrain / miniBatchSize);
+numIterationsPerEpoch = floor(numObservationsTrain / miniBatchSize);
 maxIterations = maxEpochs * numIterationsPerEpoch;
 
 % Calculate the validation frequency (evenly distribute)
 numObservationsVal = numel(X_val);
-numIterationsPerEpochVal = ceil(numObservationsVal / miniBatchSize);
-validationFrequency = ceil(numIterationsPerEpoch / numIterationsPerEpochVal);
+numIterationsPerEpochVal = floor(numObservationsVal / miniBatchSize);
+validationFrequency = ceil(numIterationsPerEpoch / numIterationsPerEpochVal) + 1;
 
 % Initialise the variables for early stopping
 earlyStop = false; % Initialise the early stopping flag
@@ -331,6 +333,7 @@ end
 mbq_test = minibatchqueue(dsTest, ...
     numMiniBatchOutputs, ...
     MiniBatchSize=miniBatchSize, ...
+    PartialMiniBatch="discard", ...
     MiniBatchFcn=@(x,t) preprocessMiniBatch(x,t,inputSize,numResponses));
 
 % Initialise the outputs
@@ -385,13 +388,13 @@ rmse_all = sqrt(mean(Y_test_diff.^2,"all"));
 
 % Convert data back to geographic coordinates
     % Denormalise data
-    Y_test_geo = cell(numel(X_test),1);
-    for n = 1 : numel(X_test)
+    Y_test_geo = cell(size(Y_test,3),1);
+    for n = 1 : size(Y_test,3)
         Y_test_geo{n} = min_T + [(Y_test(:,:,n).'-l)./(u-l)].*(max_T-min_T); % X or T ?
     end
 
     % Inverse feature transformation
-    for n = 1 : numel(X_test)
+    for n = 1 : size(Y_test,3)
         Y_test_geo{n}(1,1:2) = ais_test{n,1}{end,{'lat' 'lon'}} + Y_test_geo{n}(1,1:2);
         for n_k = 2 : size(Y_test_geo{n},1)
             Y_test_geo{n}(n_k,1:2) = Y_test_geo{n}(n_k-1,1:2) + Y_test_geo{n}(n_k,1:2);
