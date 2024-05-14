@@ -118,7 +118,7 @@ decayRate = 0.96; % Decay rate per epoch
 decaySteps = 1; % Adjust the learning rate at every epoch
 
 % Mini-batch size
-miniBatchSize = 128;
+miniBatchSize = 1024;
 
 % Number of epochs
 maxEpochs = 100;
