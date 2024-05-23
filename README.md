@@ -41,7 +41,7 @@ Download or clone this repository to your machine and open it in MATLAB.
 
 ### File description
 
-Firstly, run the script [/src/s_data_preprocessing.m](s_data_preprocessing.m). This script performs the following data preprocessing steps:
+Firstly, run the script [s_data_preprocessing.m](/src/s_data_preprocessing.m). This script performs the following data preprocessing steps:
 
 1. Import data
 2. Manage missing and invalid data
@@ -68,7 +68,7 @@ Firstly, run the script [/src/s_data_preprocessing.m](s_data_preprocessing.m). T
     - Additionally, the data is rescaled to the range [-1,1].
 11. Save data variables
 
-Secondly, run the script [/src/s_net_encoder_decoder.m](s_net_encoder_decoder.m) which creates, trains and tests a recurrent sequence-to-sequence encoder-decoder model that incorporates both an attention mechanism and a Mixture Density Network (MDN) (Encoder-Decoder MDN). The network architecture is detailed in the [Model details](#model-details) section.
+Secondly, run the script [s_net_encoder_decoder.m](/src/s_net_encoder_decoder.m) which creates, trains and tests a recurrent sequence-to-sequence encoder-decoder model that incorporates both an attention mechanism and a Mixture Density Network (MDN) (Encoder-Decoder MDN). The network architecture is detailed in the [Model details](#model-details) section.
 
 A notable advantage of this model is its ability to capture uncertainty in the predictions, which is achieved through the incorporation of a Mixture Density Network (MDN).
 
@@ -84,7 +84,7 @@ The output is a probability distribution that combines several Gaussian distribu
 
 <!-- The notable advantage of this model is its capacity to handle input and output sequences of varying lengths. Initially, a stacked BiLSTM model was implemented but this required fixed-length input and output sequences. --> <!-- (defined as a `dlnetwork` object) -->
 
-Furthermore, the [/src/s_net_encoder_decoder.m](s_net_encoder_decoder.m) script includes the following steps:
+Furthermore, the [s_net_encoder_decoder.m](/src/s_net_encoder_decoder.m) script includes the following steps:
 
 1. Load data
 2. Preprocess data
@@ -105,7 +105,7 @@ Furthermore, the [/src/s_net_encoder_decoder.m](s_net_encoder_decoder.m) script 
 
 ### Tests
 
-The unit and integration tests in [/tests](tests/) as well as instructions on how to run them will be added in the near future. <!-- and any necessary dependencies or setup required for testing. -->
+The unit and integration tests in [tests/](/tests) as well as instructions on how to run them will be added in the near future. <!-- and any necessary dependencies or setup required for testing. -->
 
 ## Model details
 
