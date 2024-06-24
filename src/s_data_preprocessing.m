@@ -400,51 +400,53 @@ end
 % point and interpolation is carried out
 
 
-function bearing_implied = bearingImplied(lat,lon,cog)
+function bearing_implied = bearingImplied(lat,lon,initial_cog)
 %bearingImplied Calculate the implied bearing (deg) from lat and lon.
 %   The bearing (azimuth) is the angle a line makes with a meridian (line
 %   of longitude), measured on a sphere in degrees clockwise from north
-%   (ranging from 0 to 360). See the MATLAB functions 'distance' and 'azimuth'.
+%   (ranging from 0 to 359). See the MATLAB functions 'distance' and 'azimuth'.
 %
-%   BEARING_IMPLIED = BEARINGIMPLIED(LAT,LON,COG)
-%       Inputs: LAT [double], LON [double] and COG [double]
-%       Output: BEARING_IMPLIED measured clockwise from True North [double]
+%   BEARING_IMPLIED = BEARINGIMPLIED(LAT,LON,INITIAL_COG)
+%       Inputs:
+%           LAT [double]: latitude in degrees
+%           LON [double]: longitude in degrees
+%           INITIAL_COG [integer]: initial course over ground in degrees
+%       Output:
+%           BEARING_IMPLIED [integer]: calculated bearings measured
+%               clockwise from True North (i.e. true bearing)
 %
 %   Example: ais_seq.bearing_implied = bearingImplied(ais_seq.lat,ais_seq.lon,ais_seq.cog(1));
 
 n_points = length(lat);
-bearing_implied = zeros(1, n_points - 1);
+bearing_implied = zeros(n_points,1,"int16");
+bearing_implied(1) = initial_cog; % Set the first bearing to the initial COG
 
-for i = 1 : (n_points - 1)
-    lat1 = lat(i);
-    lon1 = lon(i);
-    lat2 = lat(i + 1);
-    lon2 = lon(i + 1);
+for i = 2 : n_points
+    lat1 = lat(i-1);
+    lon1 = lon(i-1);
+    lat2 = lat(i);
+    lon2 = lon(i);
 
-    % Convert latitude and longitude from degrees to radians
-    lat1 = deg2rad(lat1);
-    lon1 = deg2rad(lon1);
-    lat2 = deg2rad(lat2);
-    lon2 = deg2rad(lon2);
+    if lat1 == lat2 && lon1 == lon2
+        % If coordinates haven't changed, use the previous bearing
+        bearing_implied(i) = bearing_implied(i-1);
+    else
+        % Calculate the bearing using the Haversine formula (deg)
+        dLon = lon2 - lon1;
+        y = sind(dLon) * cosd(lat2);
+        x = cosd(lat1) * sind(lat2) - sind(lat1) * cosd(lat2) * cosd(dLon);
+        bearing = atan2d(y,x);
 
-    % Calculate the bearing using the Haversine formula
-    dLon = lon2 - lon1;
-    y = sin(dLon) * cos(lat2);
-    x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon);
+        % Normalise the bearing to be in the range [0,359] deg
+        bearing = mod(bearing + 360, 360);
 
-    % Convert the bearing from radians to degrees
-    bearing = atan2(y,x);
-    bearing = rad2deg(bearing);
+        % Round to nearest integer and ensure it's in the range [0,359] deg
+        bearing = int16(mod(round(bearing),360));
 
-    % Normalise the bearing to be in the range [0, 360] degrees
-    bearing = mod(bearing + 360,360);
-
-    % Store the bearing in the results array
-    bearing_implied(i) = bearing;
+        % Store the bearing in the results array
+        bearing_implied(i) = bearing;
+    end
 end
-
-% Include the first entry from the COG column
-bearing_implied = [cog bearing_implied]';
 
 end
 
