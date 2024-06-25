@@ -56,17 +56,28 @@ for seq_idx = 1 : numel(u_mmsi)
         continue
     end
 
-    % Determine the implied speed (m/s)
-    ais_seq.speed_implied = speedImplied(ais_seq.datetime,ais_seq.lat, ...
-        ais_seq.lon,ais_seq.sog);
-
-    % Determine the implied bearing (deg)
-    ais_seq.bearing_implied = bearingImplied(ais_seq.lat,ais_seq.lon, ...
-        ais_seq.cog(1));
-
     % Segment the sequence into subsequences by applying a time interval threshold
     time_threshold = hours(1);
     ais_sseq = segmentSeq(ais_seq,time_threshold);
+
+    % Calculate the implied speed and bearing for each subsequence
+    for sseq_idx = 1 : numel(ais_sseq)
+        if size(ais_sseq{sseq_idx},1) >= 2
+            % Determine the implied speed (m/s)
+            ais_sseq{sseq_idx}.speed_implied = speedImplied( ...
+                ais_sseq{sseq_idx}.datetime,ais_sseq{sseq_idx}.lat, ...
+                ais_sseq{sseq_idx}.lon,ais_sseq{sseq_idx}.sog);
+
+            % Determine the implied bearing (deg)
+            ais_sseq{sseq_idx}.bearing_implied = bearingImplied( ...
+                ais_sseq{sseq_idx}.lat,ais_sseq{sseq_idx}.lon, ...
+                ais_sseq{sseq_idx}.cog(1));
+        else
+            % If subsequence has less than 2 rows, set implied speed and bearing to NaN
+            ais_sseq{sseq_idx}.speed_implied = NaN(size(ais_sseq{sseq_idx},1),1);
+            ais_sseq{sseq_idx}.bearing_implied = NaN(size(ais_sseq{sseq_idx},1),1);
+        end
+    end
 
     % Concatenate the subsequences while looping over each sequence
     ais_sseqs = cat(1,ais_sseqs,ais_sseq);
