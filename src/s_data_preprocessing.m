@@ -444,7 +444,7 @@ function bearing_implied = bearingImplied(lat,lon,initial_cog)
 %   Example: ais_seq.bearing_implied = bearingImplied(ais_seq.lat,ais_seq.lon,ais_seq.cog(1));
 
 n_points = length(lat);
-bearing_implied = zeros(n_points,1,"int16");
+bearing_implied = zeros(n_points,1);
 bearing_implied(1) = initial_cog; % Set the first bearing to the initial COG
 
 for i = 2 : n_points
@@ -467,7 +467,7 @@ for i = 2 : n_points
         bearing = mod(bearing + 360, 360);
 
         % Round to nearest integer and ensure it's in the range [0,359] deg
-        bearing = int16(mod(round(bearing),360));
+        bearing = mod(round(bearing), 360);
 
         % Store the bearing in the results array
         bearing_implied(i) = bearing;
@@ -528,9 +528,6 @@ function interp = circularInterp(t,values,query_points)
 %   Example: interp_bearing = circularInterp(original_times,
 %       ais_sseq_tt.bearing_implied,new_times_seconds);
 
-% Convert values to double to ensure compatibility
-values = double(values);
-
 % Unwrap the angles to avoid discontinuities
 unwrapped = unwrap(deg2rad(values));
 
@@ -565,8 +562,8 @@ end
 % Wrap the interpolated values back to the range [0,359] deg
 interp = mod(rad2deg(interp_unwrapped), 360);
 
-% Convert back to the original data type (int16)
-interp = int16(round(interp));
+% Round to nearest integer
+interp = round(interp);
 end
 
 
