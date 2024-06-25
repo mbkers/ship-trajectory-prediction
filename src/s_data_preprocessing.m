@@ -499,7 +499,12 @@ end
 
 
 function interp = circularInterp(t,values,query_points)
-%circularInterp Interpolate angular data using circular interpolation.
+%circularInterp Interpolate angular vessel data
+%   Interpolate angular data using circular interpolation with realistic*
+%   vessel turning behavior. *When making turns, vessels often change their
+%   bearing more rapidly than a linear interpolation. Therefore, a modified
+%   sigmoid function is used to model the rate of change in bearing between
+%   two consecutive data points.
 %
 %   INTERP = CIRCULARINTERP(T,VALUES,QUERY_POINTS)
 %       Inputs:
@@ -518,8 +523,33 @@ values = double(values);
 % Unwrap the angles to avoid discontinuities
 unwrapped = unwrap(deg2rad(values));
 
-% Perform linear interpolation on the unwrapped values
-interp_unwrapped = interp1(t,unwrapped,query_points,'linear');
+% Perform interpolation on the unwrapped values:
+% Initialise the output
+interp_unwrapped = zeros(size(query_points));
+
+% Loop through each segment (i.e. the portion of the path between two
+% consecutive known data points)
+for i = 1 : length(t)-1
+    % Find query points in this segment
+    mask = (query_points >= t(i)) & (query_points <= t(i+1));
+    if ~any(mask)
+        continue
+    end
+
+    % Calculate the normalised time within this segment
+    norm_time = (query_points(mask) - t(i)) / (t(i+1) - t(i));
+
+    % Calculate the angle difference for this segment
+    angle_diff = unwrapped(i+1) - unwrapped(i);
+
+    % Apply a sigmoid function to model the turning behavior
+    k = 20;  % Steepness factor (increase for steeper curve)
+    shift = 0.10;  % Shift to the left (decrease for earlier rapid change)
+    sigmoid = 1 ./ (1 + exp(-k * (norm_time - shift)));
+
+    % Interpolate using the sigmoid function
+    interp_unwrapped(mask) = unwrapped(i) + angle_diff * sigmoid;
+end
 
 % Wrap the interpolated values back to the range [0,359] deg
 interp = mod(rad2deg(interp_unwrapped), 360);
