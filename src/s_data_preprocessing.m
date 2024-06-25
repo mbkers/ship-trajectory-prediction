@@ -89,16 +89,31 @@ for sseq_idx = 1 : numel(ais_sseqs)
     % Convert table to timetable
     ais_sseq_tt = table2timetable(ais_sseq);
 
-    % Resample data in timetable
-    ais_sseq_tt_1 = retime(ais_sseq_tt(:,{'lat','lon'}), ...
-        'regular','linear','TimeStep',dt,'EndValues',NaN); % 'spline'
-    ais_sseq_tt_2 = retime(ais_sseq_tt(:,'speed_implied'), ...
-        'regular','linear','TimeStep',dt,'EndValues',NaN); % 'makima'
-    ais_sseq_tt_3 = retime(ais_sseq_tt(:,'bearing_implied'), ...
-        'regular','nearest','TimeStep',dt,'EndValues',NaN); % TODO: implement circular interpolation
+    % Define the new time vector aligned to dt-minute marks
+    start_time = dateshift(ais_sseq_tt.datetime(1),'start','minute','nearest');
+    end_time = dateshift(ais_sseq_tt.datetime(end),'end','minute','nearest');
+    new_times = start_time:dt:end_time;
 
-    % Concatenate values
-    ais_sseq_tt = [ais_sseq_tt_1 ais_sseq_tt_2 ais_sseq_tt_3];
+    % Resample data in timetable:
+        % Linear interpolation for latitude and longitude
+        ais_sseq_tt_1 = retime(ais_sseq_tt(:,{'lat','lon'}), ...
+            new_times,'linear','EndValues',NaN); % 'spline'
+
+        % Linear interpolation for speed_implied
+        ais_sseq_tt_2 = retime(ais_sseq_tt(:,'speed_implied'), ...
+            new_times,'linear','EndValues',NaN); % 'makima'
+
+        % Circular interpolation for bearing_implied
+        original_times = seconds(ais_sseq_tt.datetime - start_time);
+        new_times_seconds = seconds(new_times - start_time);
+        interp_bearing = circularInterp(original_times, ...
+            ais_sseq_tt.bearing_implied,new_times_seconds);
+
+        ais_sseq_tt_3 = timetable(new_times',interp_bearing', ...
+            'VariableNames',{'bearing_implied'});
+
+        % Concatenate values
+        ais_sseq_tt = [ais_sseq_tt_1 ais_sseq_tt_2 ais_sseq_tt_3];
 
     % Add back vessel type column
     ais_sseq_tt.vessel_type = repmat(ais_sseq.vessel_type(1),[size(ais_sseq_tt,1) 1]);
@@ -410,9 +425,9 @@ function bearing_implied = bearingImplied(lat,lon,initial_cog)
 %       Inputs:
 %           LAT [double]: latitude in degrees
 %           LON [double]: longitude in degrees
-%           INITIAL_COG [integer]: initial course over ground in degrees
+%           INITIAL_COG [double]: initial course over ground in degrees
 %       Output:
-%           BEARING_IMPLIED [integer]: calculated bearings measured
+%           BEARING_IMPLIED [int16]: calculated bearings measured
 %               clockwise from True North (i.e. true bearing)
 %
 %   Example: ais_seq.bearing_implied = bearingImplied(ais_seq.lat,ais_seq.lon,ais_seq.cog(1));
@@ -480,6 +495,37 @@ for t = 1 : numel(idx_start)
     ais_sseq{t} = ais_seq(idx_start(t):idx_end(t),:);
 end
 
+end
+
+
+function interp = circularInterp(t,values,query_points)
+%circularInterp Interpolate angular data using circular interpolation.
+%
+%   INTERP = CIRCULARINTERP(T,VALUES,QUERY_POINTS)
+%       Inputs:
+%           T [double]: Original time points
+%           VALUES [int16]: Angular values corresponding to T (in degrees)
+%           QUERY_POINTS [double]: Time points at which to interpolate
+%       Output:
+%           INTERP [int16]: Interpolated angular values at QUERY_POINTS (in degrees)
+%
+%   Example: interp_bearing = circularInterp(original_times,
+%       ais_sseq_tt.bearing_implied,new_times_seconds);
+
+% Convert values to double to ensure compatibility
+values = double(values);
+
+% Unwrap the angles to avoid discontinuities
+unwrapped = unwrap(deg2rad(values));
+
+% Perform linear interpolation on the unwrapped values
+interp_unwrapped = interp1(t,unwrapped,query_points,'linear');
+
+% Wrap the interpolated values back to the range [0,359] deg
+interp = mod(rad2deg(interp_unwrapped), 360);
+
+% Convert back to the original data type (int16)
+interp = int16(round(interp));
 end
 
 
