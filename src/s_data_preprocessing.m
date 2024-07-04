@@ -148,7 +148,12 @@ for sseq_idx = 1 : numel(ais_sseqs)
     ais_sseqs{sseq_idx}.lon_diff = [0; diff(ais_sseqs{sseq_idx}.lon)];
     ais_sseqs{sseq_idx}.speed_implied_diff = [0; diff(ais_sseqs{sseq_idx}.speed_implied)];
     ais_sseqs{sseq_idx}.bearing_implied_diff = [0; abs(diff(ais_sseqs{sseq_idx}.bearing_implied))];
-    ais_sseqs{sseq_idx,1}(1,:) = [];
+
+    % Add sine and cosine encoding for bearing_implied
+    ais_sseqs{sseq_idx}.bearing_implied_sin = sind(ais_sseqs{sseq_idx}.bearing_implied);
+    ais_sseqs{sseq_idx}.bearing_implied_cos = cosd(ais_sseqs{sseq_idx}.bearing_implied);
+
+    ais_sseqs{sseq_idx}(1,:) = [];
 end
 
 % Remove empty subsequences
@@ -246,7 +251,8 @@ step_size = 1; % Time step difference between consecutive windows
 %% Prepare training, validation and test data splits
 % Define the input features
 % Available input features: 'lat','lon','speed_implied','bearing_implied',
-% 'lat_diff','lon_diff','speed_implied_diff','bearing_implied_diff'
+% 'lat_diff','lon_diff','speed_implied_diff','bearing_implied_diff',
+% 'bearing_implied_sin','bearing_implied_cos'
 input_features = {'lat_diff','lon_diff'};
 
 % Define the response features
