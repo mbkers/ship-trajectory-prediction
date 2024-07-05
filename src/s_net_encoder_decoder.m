@@ -27,8 +27,8 @@ dsTest = combine(dsXTest,dsTTest);
 
 %% Initialise model parameters
 % Specify parameters for both the encoder and decoder
-numFeatures = size(X_train{1},1);
-numResponses = size(T_train{1},1);
+numFeatures = size(X_train{1},1); % numInputFeatures
+numResponses = size(T_train{1},1); % numOutputFeatures
 numHiddenUnits = 32;
 dropout = 0.20;
 
@@ -61,9 +61,9 @@ dropout = 0.20;
 
     % Initialise the learnable parameters for the decoder LSTM operation
     % (same initialisers as the encoder BiLSTM operation)
-    sz = [4*numHiddenUnits numFeatures+numHiddenUnits];
+    sz = [4*numHiddenUnits numResponses+numHiddenUnits];
     numOut = 4*numHiddenUnits;
-    numIn = numFeatures + numHiddenUnits;
+    numIn = numResponses + numHiddenUnits;
 
     parameters.decoder.lstm.InputWeights = initializeGlorot(sz,numOut,numIn);
     parameters.decoder.lstm.RecurrentWeights = initializeOrthogonal([4*numHiddenUnits numHiddenUnits]);
@@ -354,7 +354,7 @@ while hasdata(mbq_test)
     dropout = 0;
     doTeacherForcing = false;
     sequenceLength = size(X,3); % Sequence length to predict
-    [Y,~,~,~] = decoderPredictions(bestModelParameters.decoder,Z,X(:,:,end), ...
+    [Y,~,~,~] = decoderPredictions(bestModelParameters.decoder,Z,X(1:2,:,end), ...
         hiddenState,dropout,doTeacherForcing,sequenceLength);
 
     % Determine predictions
@@ -469,7 +469,7 @@ for i = 1 : numel(I)
         dropout = 0;
         doTeacherForcing = false;
         sequenceLength = size(X,3);
-        [Y,~,~,~] = decoderPredictions(bestModelParameters.decoder,Z,X(:,:,end), ...
+        [Y,~,~,~] = decoderPredictions(bestModelParameters.decoder,Z,X(1:2,:,end), ...
             hiddenState,dropout,doTeacherForcing,sequenceLength);
 
         % Determine predictions
