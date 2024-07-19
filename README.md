@@ -1,8 +1,10 @@
 # ship-trajectory-prediction
 
+
 <div align="center">
     <img src="/assets/images/stp_summary_figure.png" alt="Summary figure">
 </div>
+
 
 **What the project does**:
 
