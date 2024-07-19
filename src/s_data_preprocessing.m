@@ -56,17 +56,28 @@ for seq_idx = 1 : numel(u_mmsi)
         continue
     end
 
-    % Determine the implied speed (m/s)
-    ais_seq.speed_implied = speedImplied(ais_seq.datetime,ais_seq.lat, ...
-        ais_seq.lon,ais_seq.sog);
-
-    % Determine the implied bearing (deg)
-    ais_seq.bearing_implied = bearingImplied(ais_seq.lat,ais_seq.lon, ...
-        ais_seq.cog(1));
-
     % Segment the sequence into subsequences by applying a time interval threshold
     time_threshold = hours(1);
     ais_sseq = segmentSeq(ais_seq,time_threshold);
+
+    % Calculate the implied speed and bearing for each subsequence
+    for sseq_idx = 1 : numel(ais_sseq)
+        if size(ais_sseq{sseq_idx},1) >= 2
+            % Determine the implied speed (m/s)
+            ais_sseq{sseq_idx}.speed_implied = speedImplied( ...
+                ais_sseq{sseq_idx}.datetime,ais_sseq{sseq_idx}.lat, ...
+                ais_sseq{sseq_idx}.lon,ais_sseq{sseq_idx}.sog);
+
+            % Determine the implied bearing (deg)
+            ais_sseq{sseq_idx}.bearing_implied = bearingImplied( ...
+                ais_sseq{sseq_idx}.lat,ais_sseq{sseq_idx}.lon, ...
+                ais_sseq{sseq_idx}.cog(1));
+        else
+            % If subsequence has less than 2 rows, set implied speed and bearing to NaN
+            ais_sseq{sseq_idx}.speed_implied = NaN(size(ais_sseq{sseq_idx},1),1);
+            ais_sseq{sseq_idx}.bearing_implied = NaN(size(ais_sseq{sseq_idx},1),1);
+        end
+    end
 
     % Concatenate the subsequences while looping over each sequence
     ais_sseqs = cat(1,ais_sseqs,ais_sseq);
@@ -89,16 +100,31 @@ for sseq_idx = 1 : numel(ais_sseqs)
     % Convert table to timetable
     ais_sseq_tt = table2timetable(ais_sseq);
 
-    % Resample data in timetable
-    ais_sseq_tt_1 = retime(ais_sseq_tt(:,{'lat','lon'}), ...
-        'regular','linear','TimeStep',dt,'EndValues',NaN); % 'spline'
-    ais_sseq_tt_2 = retime(ais_sseq_tt(:,'speed_implied'), ...
-        'regular','linear','TimeStep',dt,'EndValues',NaN); % 'makima'
-    ais_sseq_tt_3 = retime(ais_sseq_tt(:,'bearing_implied'), ...
-        'regular','nearest','TimeStep',dt,'EndValues',NaN); % TODO: implement circular interpolation
+    % Define the new time vector aligned to dt-minute marks
+    start_time = dateshift(ais_sseq_tt.datetime(1),'start','minute','nearest');
+    end_time = dateshift(ais_sseq_tt.datetime(end),'end','minute','nearest');
+    new_times = start_time:dt:end_time;
 
-    % Concatenate values
-    ais_sseq_tt = [ais_sseq_tt_1 ais_sseq_tt_2 ais_sseq_tt_3];
+    % Resample data in timetable:
+        % Linear interpolation for latitude and longitude
+        ais_sseq_tt_1 = retime(ais_sseq_tt(:,{'lat','lon'}), ...
+            new_times,'linear','EndValues',NaN); % 'spline'
+
+        % Linear interpolation for speed_implied
+        ais_sseq_tt_2 = retime(ais_sseq_tt(:,'speed_implied'), ...
+            new_times,'linear','EndValues',NaN); % 'makima'
+
+        % Circular interpolation for bearing_implied
+        original_times = seconds(ais_sseq_tt.datetime - start_time);
+        new_times_seconds = seconds(new_times - start_time);
+        interp_bearing = circularInterp(original_times, ...
+            ais_sseq_tt.bearing_implied,new_times_seconds);
+
+        ais_sseq_tt_3 = timetable(new_times',interp_bearing', ...
+            'VariableNames',{'bearing_implied'});
+
+        % Concatenate values
+        ais_sseq_tt = [ais_sseq_tt_1 ais_sseq_tt_2 ais_sseq_tt_3];
 
     % Add back vessel type column
     ais_sseq_tt.vessel_type = repmat(ais_sseq.vessel_type(1),[size(ais_sseq_tt,1) 1]);
@@ -122,7 +148,12 @@ for sseq_idx = 1 : numel(ais_sseqs)
     ais_sseqs{sseq_idx}.lon_diff = [0; diff(ais_sseqs{sseq_idx}.lon)];
     ais_sseqs{sseq_idx}.speed_implied_diff = [0; diff(ais_sseqs{sseq_idx}.speed_implied)];
     ais_sseqs{sseq_idx}.bearing_implied_diff = [0; abs(diff(ais_sseqs{sseq_idx}.bearing_implied))];
-    ais_sseqs{sseq_idx,1}(1,:) = [];
+
+    % Add sine and cosine encoding for bearing_implied
+    ais_sseqs{sseq_idx}.bearing_implied_sin = sind(ais_sseqs{sseq_idx}.bearing_implied);
+    ais_sseqs{sseq_idx}.bearing_implied_cos = cosd(ais_sseqs{sseq_idx}.bearing_implied);
+
+    ais_sseqs{sseq_idx}(1,:) = [];
 end
 
 % Remove empty subsequences
@@ -220,7 +251,8 @@ step_size = 1; % Time step difference between consecutive windows
 %% Prepare training, validation and test data splits
 % Define the input features
 % Available input features: 'lat','lon','speed_implied','bearing_implied',
-% 'lat_diff','lon_diff','speed_implied_diff','bearing_implied_diff'
+% 'lat_diff','lon_diff','speed_implied_diff','bearing_implied_diff',
+% 'bearing_implied_sin','bearing_implied_cos'
 input_features = {'lat_diff','lon_diff'};
 
 % Define the response features
@@ -400,51 +432,53 @@ end
 % point and interpolation is carried out
 
 
-function bearing_implied = bearingImplied(lat,lon,cog)
+function bearing_implied = bearingImplied(lat,lon,initial_cog)
 %bearingImplied Calculate the implied bearing (deg) from lat and lon.
 %   The bearing (azimuth) is the angle a line makes with a meridian (line
 %   of longitude), measured on a sphere in degrees clockwise from north
-%   (ranging from 0 to 360). See the MATLAB functions 'distance' and 'azimuth'.
+%   (ranging from 0 to 359). See the MATLAB functions 'distance' and 'azimuth'.
 %
-%   BEARING_IMPLIED = BEARINGIMPLIED(LAT,LON,COG)
-%       Inputs: LAT [double], LON [double] and COG [double]
-%       Output: BEARING_IMPLIED measured clockwise from True North [double]
+%   BEARING_IMPLIED = BEARINGIMPLIED(LAT,LON,INITIAL_COG)
+%       Inputs:
+%           LAT [double]: latitude in degrees
+%           LON [double]: longitude in degrees
+%           INITIAL_COG [double]: initial course over ground in degrees
+%       Output:
+%           BEARING_IMPLIED [int16]: calculated bearings measured
+%               clockwise from True North (i.e. true bearing)
 %
 %   Example: ais_seq.bearing_implied = bearingImplied(ais_seq.lat,ais_seq.lon,ais_seq.cog(1));
 
 n_points = length(lat);
-bearing_implied = zeros(1, n_points - 1);
+bearing_implied = zeros(n_points,1);
+bearing_implied(1) = initial_cog; % Set the first bearing to the initial COG
 
-for i = 1 : (n_points - 1)
-    lat1 = lat(i);
-    lon1 = lon(i);
-    lat2 = lat(i + 1);
-    lon2 = lon(i + 1);
+for i = 2 : n_points
+    lat1 = lat(i-1);
+    lon1 = lon(i-1);
+    lat2 = lat(i);
+    lon2 = lon(i);
 
-    % Convert latitude and longitude from degrees to radians
-    lat1 = deg2rad(lat1);
-    lon1 = deg2rad(lon1);
-    lat2 = deg2rad(lat2);
-    lon2 = deg2rad(lon2);
+    if lat1 == lat2 && lon1 == lon2
+        % If coordinates haven't changed, use the previous bearing
+        bearing_implied(i) = bearing_implied(i-1);
+    else
+        % Calculate the bearing using the Haversine formula (deg)
+        dLon = lon2 - lon1;
+        y = sind(dLon) * cosd(lat2);
+        x = cosd(lat1) * sind(lat2) - sind(lat1) * cosd(lat2) * cosd(dLon);
+        bearing = atan2d(y,x);
 
-    % Calculate the bearing using the Haversine formula
-    dLon = lon2 - lon1;
-    y = sin(dLon) * cos(lat2);
-    x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon);
+        % Normalise the bearing to be in the range [0,359] deg
+        bearing = mod(bearing + 360, 360);
 
-    % Convert the bearing from radians to degrees
-    bearing = atan2(y,x);
-    bearing = rad2deg(bearing);
+        % Round to nearest integer and ensure it's in the range [0,359] deg
+        bearing = mod(round(bearing), 360);
 
-    % Normalise the bearing to be in the range [0, 360] degrees
-    bearing = mod(bearing + 360,360);
-
-    % Store the bearing in the results array
-    bearing_implied(i) = bearing;
+        % Store the bearing in the results array
+        bearing_implied(i) = bearing;
+    end
 end
-
-% Include the first entry from the COG column
-bearing_implied = [cog bearing_implied]';
 
 end
 
@@ -478,6 +512,64 @@ for t = 1 : numel(idx_start)
     ais_sseq{t} = ais_seq(idx_start(t):idx_end(t),:);
 end
 
+end
+
+
+function interp = circularInterp(t,values,query_points)
+%circularInterp Interpolate angular vessel data
+%   Interpolate angular data using circular interpolation with realistic*
+%   vessel turning behavior. *When making turns, vessels often change their
+%   bearing more rapidly than a linear interpolation. Therefore, a modified
+%   sigmoid function is used to model the rate of change in bearing between
+%   two consecutive data points.
+%
+%   INTERP = CIRCULARINTERP(T,VALUES,QUERY_POINTS)
+%       Inputs:
+%           T [double]: Original time points
+%           VALUES [int16]: Angular values corresponding to T (in degrees)
+%           QUERY_POINTS [double]: Time points at which to interpolate
+%       Output:
+%           INTERP [int16]: Interpolated angular values at QUERY_POINTS (in degrees)
+%
+%   Example: interp_bearing = circularInterp(original_times,
+%       ais_sseq_tt.bearing_implied,new_times_seconds);
+
+% Unwrap the angles to avoid discontinuities
+unwrapped = unwrap(deg2rad(values));
+
+% Perform interpolation on the unwrapped values:
+% Initialise the output
+interp_unwrapped = zeros(size(query_points));
+
+% Loop through each segment (i.e. the portion of the path between two
+% consecutive known data points)
+for i = 1 : length(t)-1
+    % Find query points in this segment
+    mask = (query_points >= t(i)) & (query_points <= t(i+1));
+    if ~any(mask)
+        continue
+    end
+
+    % Calculate the normalised time within this segment
+    norm_time = (query_points(mask) - t(i)) / (t(i+1) - t(i));
+
+    % Calculate the angle difference for this segment
+    angle_diff = unwrapped(i+1) - unwrapped(i);
+
+    % Apply a sigmoid function to model the turning behavior
+    k = 20;  % Steepness factor (increase for steeper curve)
+    shift = 0.10;  % Shift to the left (decrease for earlier rapid change)
+    sigmoid = 1 ./ (1 + exp(-k * (norm_time - shift)));
+
+    % Interpolate using the sigmoid function
+    interp_unwrapped(mask) = unwrapped(i) + angle_diff * sigmoid;
+end
+
+% Wrap the interpolated values back to the range [0,359] deg
+interp = mod(rad2deg(interp_unwrapped), 360);
+
+% Round to nearest integer
+interp = round(interp);
 end
 
 
