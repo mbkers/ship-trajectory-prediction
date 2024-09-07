@@ -1,5 +1,8 @@
 # ship-trajectory-prediction
 
+> [!NOTE]
+> This repository will soon be deprecated and no longer maintained. Updated links to the new repository will be provided shortly.
+
 <div align="center">
     <img src="/assets/images/stp_summary_figure.png" alt="Summary figure">
 </div>
